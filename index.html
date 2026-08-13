@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>脉塔电机客户选型APP</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>脉塔智能 <span>电机选型系统</span></h1>
+    <div class="subtitle">MyActuator Motor Selection Tool | 产品库47款 | 2026年6月版</div>
+  </div>
+  <div style="font-size:12px;color:#667788;">额定扭矩 + 峰值扭矩 智能匹配</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="manual">手动选型</div>
+  <div class="tab" data-tab="document">文档导入选型</div>
+  <div class="tab" data-tab="library">产品库</div>
+</div>
+
+<div class="container">
+
+  <!-- ===== 手动选型 ===== -->
+  <div class="panel active" id="panel-manual">
+    <div class="card">
+      <div class="card-title">选型参数</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>额定扭矩 (Nm)</label>
+          <input type="number" id="m-rated" placeholder="例如：43" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>峰值扭矩 (Nm)</label>
+          <input type="number" id="m-peak" placeholder="例如：120" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>扭矩容差</label>
+          <div class="slider-group">
+            <input type="range" id="m-tolerance" min="1" max="10" value="3" step="0.5">
+            <div class="slider-value" id="m-tol-val">±3 Nm</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>模组类型（默认全选）</label>
+          <div class="checkbox-group" id="m-types"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>通信协议</label>
+          <select id="m-comm">
+            <option value="all">不限</option>
+            <option value="EtherCAT">EtherCAT</option>
+            <option value="CAN">CAN BUS</option>
+            <option value="RS485">RS485</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>工作电压</label>
+          <select id="m-voltage">
+            <option value="all">不限</option>
+            <option value="24">24V</option>
+            <option value="48">48V</option>
+            <option value="72">72V</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="doManualSelect()">开始选型</button>
+        <button class="btn btn-secondary" onclick="resetManual()">重置</button>
+      </div>
+    </div>
+    <div id="manual-result"></div>
+  </div>
+
+  <!-- ===== 文档导入选型 ===== -->
+  <div class="panel" id="panel-document">
+    <div class="card">
+      <div class="card-title">导入客户需求文档</div>
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">点击或拖拽文件到此处上传</div>
+        <div class="upload-hint">支持 .xlsx / .xls / .csv / .docx 格式，自动识别额定扭矩、峰值扭矩等参数</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.docx">
+      </div>
+    </div>
+
+    <div class="card" id="doc-config" style="display:none;">
+      <div class="card-title">选型配置</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>扭矩容差</label>
+          <div class="slider-group">
+            <input type="range" id="d-tolerance" min="1" max="10" value="3" step="0.5">
+            <div class="slider-value" id="d-tol-val">±3 Nm</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>模组类型</label>
+          <div class="checkbox-group" id="d-types"></div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="doDocSelect()">生成选型推荐表</button>
+        <button class="btn btn-success" onclick="exportDocResult()" id="export-btn" style="display:none;">导出Excel</button>
+        <button class="btn btn-secondary" onclick="resetDoc()">重新上传</button>
+      </div>
+    </div>
+
+    <div class="card" id="doc-result" style="display:none;">
+      <div class="card-title">识别结果与选型推荐</div>
+      <div class="parse-result">
+        <div class="parse-summary" id="parse-summary"></div>
+        <div class="table-wrap">
+          <table id="doc-table"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 产品库 ===== -->
+  <div class="panel" id="panel-library">
+    <div class="card">
+      <div class="card-title">产品库浏览（共47款）</div>
+      <div class="search-box">
+        <input type="text" id="lib-search" placeholder="搜索型号，例如 X8-120、RH-25..." oninput="renderLibrary()">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>按类型筛选</label>
+          <div class="checkbox-group" id="lib-types"></div>
+        </div>
+      </div>
+    </div>
+    <div id="library-content"></div>
+  </div>
+
+</div>
+
+<div class="footer">
+  脉塔智能电机选型系统 | 数据来源：2026年6月产品手册 | 抱闸为定制选项，标准品为无抱闸版本
+</div>
+
+<script src="lib/xlsx.full.min.js"></script>
+<script src="lib/mammoth.browser.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+// ===== 全局状态 =====
+let parsedRequirements = [];
+let docResultTable = [];
+
+// ===== 标签页切换 =====
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ===== 初始化多选框 =====
+function initCheckboxes(containerId, allChecked = true) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  MODULE_TYPES.forEach(type => {
+    const item = document.createElement('label');
+    item.className = 'checkbox-item' + (allChecked ? ' checked' : '');
+    item.innerHTML = `<input type="checkbox" value="${type}" ${allChecked ? 'checked' : ''}> ${type}`;
+    item.querySelector('input').addEventListener('change', (e) => {
+      item.classList.toggle('checked', e.target.checked);
+    });
+    container.appendChild(item);
+  });
+}
+initCheckboxes('m-types');
+initCheckboxes('d-types');
+initCheckboxes('lib-types');
+
+// ===== 容差滑块 =====
+document.getElementById('m-tolerance').addEventListener('input', (e) => {
+  document.getElementById('m-tol-val').textContent = '±' + e.target.value + ' Nm';
+});
+document.getElementById('d-tolerance').addEventListener('input', (e) => {
+  document.getElementById('d-tol-val').textContent = '±' + e.target.value + ' Nm';
+});
+
+// ===== 获取筛选条件 =====
+function getFilters(typesContainerId, commId, voltageId) {
+  const types = [];
+  document.querySelectorAll('#' + typesContainerId + ' input:checked').forEach(cb => types.push(cb.value));
+  return {
+    types: types,
+    comm: document.getElementById(commId) ? document.getElementById(commId).value : 'all',
+    voltage: document.getElementById(voltageId) ? document.getElementById(voltageId).value : 'all'
+  };
+}
+
+// ===== Toast提示 =====
+function showToast(msg, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ===== 手动选型 =====
+function doManualSelect() {
+  const rated = parseFloat(document.getElementById('m-rated').value);
+  const peak = parseFloat(document.getElementById('m-peak').value);
+  if (isNaN(rated) || isNaN(peak)) {
+    showToast('请输入额定扭矩和峰值扭矩', 'error');
+    return;
+  }
+  const tolerance = parseFloat(document.getElementById('m-tolerance').value);
+  const filters = getFilters('m-types', 'm-comm', 'm-voltage');
+  const results = selectProducts(rated, peak, tolerance, filters);
+
+  const container = document.getElementById('manual-result');
+  if (results.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div>没有匹配的产品，请调整筛选条件</div>';
+    return;
+  }
+
+  // 按类型分组
+  const grouped = {};
+  results.forEach(p => {
+    if (!grouped[p.type]) grouped[p.type] = [];
+    grouped[p.type].push(p);
+  });
+
+  let html = '';
+  for (const [type, products] of Object.entries(grouped)) {
+    html += `<div class="group-header">${type}<span class="count">${products.length}款</span></div>`;
+    html += '<div class="product-grid">';
+    products.forEach(p => {
+      const level = getDeviationLevel(p, tolerance);
+      html += `
+        <div class="product-card">
+          <div class="model">${p.short}</div>
+          <div class="full-model">${p.full}</div>
+          <div class="type-badge">${p.type}</div>
+          <div class="params">
+            <div class="param-item">额定: <span>${p.rated} Nm</span></div>
+            <div class="param-item">峰值: <span>${p.peak} Nm</span></div>
+            <div class="param-item">功率: <span>${p.power} W</span></div>
+            <div class="param-item">转速: <span>${p.speed} rpm</span></div>
+            <div class="param-item">电压: <span>${p.voltage} V</span></div>
+            <div class="param-item">重量: <span>${p.weight || '-'} kg</span></div>
+            <div class="param-item">尺寸: <span>${p.length || '-'}×${p.od || '-'} mm</span></div>
+            <div class="param-item">减速比: <span>${p.ratio}</span></div>
+            <div class="param-item" style="grid-column:span 2">通信: <span>${p.comm}</span></div>
+            <div class="param-item" style="grid-column:span 2">抱闸: <span>${p.brake}</span></div>
+          </div>
+          <div class="deviation">
+            <span class="diff-tag diff-${level}">额定偏差 ±${p.ratedDiff}Nm ${p.meetsRated ? '✓' : '✗'}</span>
+            <span class="diff-tag diff-${level}">峰值偏差 ±${p.peakDiff}Nm ${p.meetsPeak ? '✓' : '✗'}</span>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+  }
+  container.innerHTML = html;
+  showToast(`找到 ${results.length} 款匹配产品`, 'success');
+}
+
+function resetManual() {
+  document.getElementById('m-rated').value = '';
+  document.getElementById('m-peak').value = '';
+  document.getElementById('m-tolerance').value = 3;
+  document.getElementById('m-tol-val').textContent = '±3 Nm';
+  document.getElementById('m-comm').value = 'all';
+  document.getElementById('m-voltage').value = 'all';
+  initCheckboxes('m-types');
+  document.getElementById('manual-result').innerHTML = '';
+}
+
+// ===== 文档导入 =====
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+
+uploadArea.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadArea.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length > 0) handleFile(e.target.files[0]);
+});
+
+async function handleFile(file) {
+  try {
+    showToast('正在解析文件...', 'info');
+    parsedRequirements = await parseFile(file);
+    if (parsedRequirements.length === 0) {
+      showToast('未识别到有效扭矩参数，请检查文件格式', 'error');
+      return;
+    }
+    document.getElementById('doc-config').style.display = 'block';
+    showToast(`成功识别 ${parsedRequirements.length} 条需求`, 'success');
+  } catch (err) {
+    showToast('文件解析失败：' + err.message, 'error');
+  }
+}
+
+function doDocSelect() {
+  if (parsedRequirements.length === 0) {
+    showToast('请先上传文件', 'error');
+    return;
+  }
+  const tolerance = parseFloat(document.getElementById('d-tolerance').value);
+  const filters = getFilters('d-types', 'none', 'none');
+  filters.comm = 'all';
+  filters.voltage = 'all';
+
+  docResultTable = generateSelectionTable(parsedRequirements, tolerance, filters);
+
+  document.getElementById('parse-summary').innerHTML =
+    `文件共识别 <strong>${parsedRequirements.length}</strong> 条需求，已为每条需求推荐最佳匹配型号。`;
+
+  const table = document.getElementById('doc-table');
+  let html = `<thead><tr>
+    <th>部位/轴位</th><th>数量</th>
+    <th>需求额定</th><th>需求峰值</th>
+    <th>推荐型号</th><th>模组类型</th>
+    <th>额定扭矩</th><th>峰值扭矩</th>
+    <th>额定偏差</th><th>峰值偏差</th><th>满足</th>
+    <th>功率</th><th>转速</th><th>电压</th>
+    <th>尺寸</th><th>重量</th><th>通信</th><th>抱闸</th>
+    <th>备选型号</th>
+  </tr></thead><tbody>`;
+
+  docResultTable.forEach(row => {
+    const level = row.bestTotalDiff <= 5 ? 'good' : (row.bestTotalDiff <= 10 ? 'warn' : 'bad');
+    const meetsText = row.bestMeetsAll ? '✓ 满足' : '✗ 不足';
+    const ratedDiffText = row.bestRatedDiff === "-" ? "-" : `±${row.bestRatedDiff}Nm`;
+    const peakDiffText = row.bestPeakDiff === "-" ? "-" : `±${row.bestPeakDiff}Nm`;
+    html += `<tr>
+      <td>${row.position}</td>
+      <td>${row.count}</td>
+      <td>${row.reqRated} Nm</td>
+      <td>${row.reqPeak} Nm</td>
+      <td class="model-name">${row.bestModel}</td>
+      <td>${row.bestType}</td>
+      <td>${row.bestRated} Nm</td>
+      <td>${row.bestPeak} Nm</td>
+      <td><span class="diff-tag diff-${level}">${ratedDiffText}</span></td>
+      <td><span class="diff-tag diff-${level}">${peakDiffText}</span></td>
+      <td><span class="diff-tag diff-${level}">${meetsText}</span></td>
+      <td>${row.bestPower} W</td>
+      <td>${row.bestSpeed} rpm</td>
+      <td>${row.bestVoltage} V</td>
+      <td>${row.bestSize} mm</td>
+      <td>${row.bestWeight || '-'} kg</td>
+      <td>${row.bestComm}</td>
+      <td>${row.bestBrake}</td>
+      <td>${row.secondModel}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+
+  document.getElementById('doc-result').style.display = 'block';
+  document.getElementById('export-btn').style.display = 'inline-block';
+  showToast('选型推荐表已生成', 'success');
+}
+
+function exportDocResult() {
+  if (docResultTable.length === 0) {
+    showToast('请先生成选型表', 'error');
+    return;
+  }
+  exportToExcel(docResultTable, '脉塔选型推荐表.xlsx');
+  showToast('Excel已导出', 'success');
+}
+
+function resetDoc() {
+  parsedRequirements = [];
+  docResultTable = [];
+  fileInput.value = '';
+  document.getElementById('doc-config').style.display = 'none';
+  document.getElementById('doc-result').style.display = 'none';
+  document.getElementById('export-btn').style.display = 'none';
+}
+
+// ===== 产品库 =====
+function renderLibrary() {
+  const keyword = document.getElementById('lib-search').value.toLowerCase();
+  const types = [];
+  document.querySelectorAll('#lib-types input:checked').forEach(cb => types.push(cb.value));
+
+  let filtered = PRODUCTS.filter(p => {
+    if (types.length > 0 && !types.includes(p.type)) return false;
+    if (keyword && !p.short.toLowerCase().includes(keyword) && !p.full.toLowerCase().includes(keyword)) return false;
+    return true;
+  });
+
+  const grouped = {};
+  filtered.forEach(p => {
+    if (!grouped[p.type]) grouped[p.type] = [];
+    grouped[p.type].push(p);
+  });
+
+  const container = document.getElementById('library-content');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">📦</div>没有找到产品</div>';
+    return;
+  }
+
+  let html = '';
+  for (const [type, products] of Object.entries(grouped)) {
+    html += `<div class="group-header">${type}<span class="count">${products.length}款</span></div>`;
+    html += '<div class="table-wrap"><table><thead><tr>';
+    html += '<th>型号</th><th>完整型号</th><th>额定扭矩</th><th>峰值扭矩</th><th>功率</th><th>转速</th><th>电压</th><th>总长</th><th>外径</th><th>重量</th><th>通信</th><th>减速比</th><th>抱闸</th>';
+    html += '</tr></thead><tbody>';
+    products.forEach(p => {
+      html += `<tr>
+        <td class="model-name">${p.short}</td>
+        <td style="font-size:11px;color:#8899aa;">${p.full}</td>
+        <td>${p.rated} Nm</td>
+        <td>${p.peak} Nm</td>
+        <td>${p.power} W</td>
+        <td>${p.speed} rpm</td>
+        <td>${p.voltage} V</td>
+        <td>${p.length || '-'} mm</td>
+        <td>${p.od || '-'} mm</td>
+        <td>${p.weight || '-'} kg</td>
+        <td>${p.comm}</td>
+        <td>${p.ratio}</td>
+        <td>${p.brake}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+  container.innerHTML = html;
+}
+renderLibrary();
+document.querySelectorAll('#lib-types input').forEach(cb => cb.addEventListener('change', renderLibrary));
+</script>
+</script>
+
+</body>
+</html>
