@@ -272,6 +272,93 @@ tr:hover { background: rgba(33,150,243,0.05); }
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* ===== 智能问答样式 ===== */
+.chat-message {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+}
+.chat-user {
+  background: rgba(33, 150, 243, 0.08);
+  flex-direction: row-reverse;
+}
+.chat-ai {
+  background: rgba(76, 175, 80, 0.05);
+}
+.chat-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1a2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.chat-user .chat-avatar {
+  background: rgba(33, 150, 243, 0.2);
+}
+.chat-ai .chat-avatar {
+  background: rgba(76, 175, 80, 0.2);
+}
+.chat-content {
+  flex: 1;
+  min-width: 0;
+}
+.chat-name {
+  font-size: 12px;
+  color: #8899aa;
+  margin-bottom: 4px;
+}
+.chat-user .chat-name {
+  text-align: right;
+}
+.chat-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #e0e6ed;
+  word-break: break-word;
+}
+.chat-text strong {
+  color: #4a9eff;
+  font-weight: 600;
+}
+.chat-text table {
+  width: 100%;
+  margin: 8px 0;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.chat-text th, .chat-text td {
+  padding: 6px 10px;
+  border: 1px solid #2a3a4a;
+  text-align: left;
+}
+.chat-text th {
+  background: #243447;
+  color: #aabbcc;
+}
+.chat-text ul, .chat-text ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+.chat-text li {
+  margin-bottom: 4px;
+}
+#ai-chat::-webkit-scrollbar {
+  width: 6px;
+}
+#ai-chat::-webkit-scrollbar-track {
+  background: #0f1923;
+}
+#ai-chat::-webkit-scrollbar-thumb {
+  background: #2a3a4a;
+  border-radius: 3px;
+}
+
 .footer {
   text-align: center;
   padding: 20px;
@@ -279,6 +366,197 @@ tr:hover { background: rgba(33,150,243,0.05); }
   font-size: 12px;
   border-top: 1px solid #2a3a4a;
   margin-top: 40px;
+}
+
+/* ===== 方案推荐 ===== */
+.solution-summary h3 {
+  color: #4da6ff;
+  margin: 0 0 15px 0;
+  font-size: 18px;
+}
+.solution-stats {
+  display: flex;
+  gap: 15px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+.stat-item {
+  background: #1a2a3a;
+  padding: 15px 20px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 100px;
+  flex: 1;
+}
+.stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+  color: #4da6ff;
+}
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: #8899aa;
+  margin-top: 5px;
+}
+.solution-params {
+  margin: 15px 0;
+  padding: 10px;
+  background: #0f1923;
+  border-radius: 6px;
+}
+.param-tag {
+  display: inline-block;
+  background: #1a2a3a;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin: 3px;
+  font-size: 13px;
+  color: #aabbcc;
+}
+.solution-part {
+  margin: 25px 0;
+}
+.solution-part h4 {
+  color: #66cc88;
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  border-left: 3px solid #66cc88;
+  padding-left: 10px;
+}
+.solution-table, .bom-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.solution-table th, .bom-table th {
+  background: #1a2a3a;
+  color: #8899aa;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 2px solid #2a3a4a;
+  white-space: nowrap;
+}
+.solution-table td, .bom-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1a2a3a;
+  color: #ccddee;
+}
+.solution-table tr:hover, .bom-table tr:hover {
+  background: #1a2530;
+}
+.joint-type {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+}
+.type-重载 {
+  background: #4a2020;
+  color: #ff6666;
+}
+.type-中载 {
+  background: #4a3a20;
+  color: #ffaa44;
+}
+.type-轻载 {
+  background: #204a2a;
+  color: #66cc88;
+}
+.rec-primary {
+  color: #4da6ff;
+  font-weight: bold;
+  font-size: 12px;
+}
+.rec-alt {
+  color: #8899aa;
+  font-size: 11px;
+  margin-top: 2px;
+}
+.no-rec {
+  color: #ff6666;
+  font-size: 12px;
+}
+.solution-bom {
+  margin: 25px 0;
+}
+.solution-bom h4 {
+  color: #ffaa44;
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  border-left: 3px solid #ffaa44;
+  padding-left: 10px;
+}
+.solution-note {
+  margin-top: 20px;
+  padding: 15px;
+  background: #1a2028;
+  border-radius: 6px;
+  border-left: 3px solid #ffaa44;
+}
+.solution-note p {
+  margin: 0;
+  color: #aabbcc;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.table-responsive {
+  overflow-x: auto;
+}
+
+/* 满足状态标签 */
+.satisfaction-stats {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+}
+.satisfaction-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin: 2px 5px 2px 0;
+  font-weight: 500;
+}
+.status-exact {
+  background: rgba(76, 175, 80, 0.2);
+  color: #66bb66;
+  border: 1px solid #4caf50;
+}
+.status-ok {
+  background: rgba(33, 150, 243, 0.2);
+  color: #66aaff;
+  border: 1px solid #2196f3;
+}
+.status-over {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ffaa44;
+  border: 1px solid #ff9800;
+}
+.status-unknown {
+  background: rgba(150, 150, 150, 0.2);
+  color: #aaaaaa;
+  border: 1px solid #999;
+}
+
+/* 快捷示例按钮 */
+.prompt-example {
+  padding: 4px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid #334;
+  border-radius: 12px;
+  color: #aabbcc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.prompt-example:hover {
+  background: rgba(255,170,68,0.15);
+  border-color: #ffaa44;
+  color: #ffaa44;
 }
 
 </style>
@@ -297,6 +575,8 @@ tr:hover { background: rgba(33,150,243,0.05); }
   <div class="tab active" data-tab="manual">手动选型</div>
   <div class="tab" data-tab="document">文档导入选型</div>
   <div class="tab" data-tab="library">产品库</div>
+  <div class="tab" data-tab="ai">智能问答</div>
+  <div class="tab" data-tab="solution">方案推荐</div>
 </div>
 
 <div class="container">
@@ -346,6 +626,26 @@ tr:hover { background: rgba(33,150,243,0.05); }
             <option value="48">48V</option>
             <option value="72">72V</option>
           </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>总长 ≤ (mm)</label>
+          <input type="number" id="m-length" placeholder="不限留空" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>外径 ≤ (mm)</label>
+          <input type="number" id="m-od" placeholder="不限留空" step="0.1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>额定转速 ≥ (rpm)</label>
+          <input type="number" id="m-speed" placeholder="不限留空" step="1">
+        </div>
+        <div class="form-group">
+          <label>额定功率 ≥ (W)</label>
+          <input type="number" id="m-power" placeholder="不限留空" step="1">
         </div>
       </div>
       <div class="btn-group">
@@ -446,6 +746,115 @@ tr:hover { background: rgba(33,150,243,0.05); }
     <div id="library-content"></div>
   </div>
 
+  <!-- ===== 智能问答 ===== -->
+  <div class="panel" id="panel-ai">
+    <div class="card">
+      <div class="card-title">智能问答助手</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:13px;color:#8899aa;">
+          可以询问：产品参数、选型建议、技术对比、常见问题等
+        </div>
+        <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;" onclick="toggleAISettings()">⚙ API设置</button>
+      </div>
+      <div id="ai-settings" style="display:none;background:#0f1923;padding:12px;border-radius:6px;margin-bottom:12px;border:1px solid #2a3a4a;">
+        <div style="font-size:13px;color:#aabbcc;margin-bottom:8px;font-weight:600;">豆包API配置（火山引擎方舟）</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="password" id="ai-api-key" placeholder="请输入API Key" style="width:100%;padding:8px;background:#0a1219;border:1px solid #2a3a4a;border-radius:4px;color:#e0e6ed;">
+          </div>
+          <div class="form-group">
+            <label>模型接入点 (Endpoint ID)</label>
+            <input type="text" id="ai-endpoint" placeholder="例如：ep-20240812xxxx" style="width:100%;padding:8px;background:#0a1219;border:1px solid #2a3a4a;border-radius:4px;color:#e0e6ed;">
+          </div>
+        </div>
+        <div style="font-size:11px;color:#667788;margin-top:8px;line-height:1.6;">
+          配置后将使用豆包大模型进行智能问答；未配置时使用本地知识库回答。API Key保存在本地浏览器，不会上传。
+        </div>
+        <div style="margin-top:8px;">
+          <button class="btn btn-primary" style="padding:4px 12px;font-size:12px;" onclick="saveAISettings()">保存设置</button>
+          <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;" onclick="clearAISettings()">清除</button>
+          <span id="ai-api-status" style="font-size:12px;color:#4CAF50;margin-left:10px;"></span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>输入您的问题</label>
+        <textarea id="ai-input" rows="3" placeholder="请输入您的问题，例如：X8-120的参数是什么？" style="width:100%;padding:10px;background:#0f1923;border:1px solid #2a3a4a;border-radius:6px;color:#e0e6ed;font-family:inherit;resize:vertical;"></textarea>
+      </div>
+      <div class="btn-group" style="margin-top:10px;">
+        <button class="btn btn-primary" onclick="askAI()">发送问题</button>
+        <button class="btn btn-secondary" onclick="clearAI()">清空对话</button>
+      </div>
+    </div>
+    <div class="card" id="ai-result-card" style="display:none;">
+      <div class="card-title">问答记录</div>
+      <div id="ai-chat" style="max-height:600px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- ===== 方案推荐 ===== -->
+  <div class="panel" id="panel-solution">
+    <div class="card">
+      <div class="card-title">机器人系统方案推荐</div>
+      <p style="color:#889;margin-bottom:20px;">输入描述，AI自动识别参数并生成完整选型方案</p>
+      
+      <!-- 智能快速生成（主体功能） -->
+      <div style="background:rgba(255,170,68,0.08);border:1px solid rgba(255,170,68,0.3);border-radius:8px;padding:20px;margin-bottom:15px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:22px;">✨</span>
+          <strong style="color:#ffaa44;font-size:16px;">智能快速生成</strong>
+          <span style="color:#889;font-size:12px;">输入描述，自动识别参数并生成方案</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <input type="text" id="smart-prompt" placeholder="例如：7轴机械臂 / 1.6米人形机器人 / 20kg机器狗 / 5kg负载协作臂 / 高精度人形机器人" style="flex:1;padding:12px 14px;border:1px solid #445;border-radius:6px;background:#0d1117;color:#e6edf3;font-size:15px;">
+          <button class="btn btn-primary" id="btn-smart-generate" style="white-space:nowrap;padding:12px 24px;font-size:15px;">智能生成</button>
+        </div>
+        <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+          <span style="color:#667;font-size:12px;">快捷示例：</span>
+          <button class="prompt-example" data-prompt="服务人形机器人">服务人形机器人</button>
+          <button class="prompt-example" data-prompt="工业人形机器人，10kg负载">工业人形机器人</button>
+          <button class="prompt-example" data-prompt="7轴协作机械臂，5kg负载">7轴协作机械臂</button>
+          <button class="prompt-example" data-prompt="工业码垛机械臂，15kg负载">码垛机械臂</button>
+          <button class="prompt-example" data-prompt="20kg工业巡检机器狗">巡检机器狗</button>
+          <button class="prompt-example" data-prompt="15自由度灵巧手">灵巧手</button>
+          <button class="prompt-example" data-prompt="高精度人形机器人，背隙小于1弧分">高精度人形机器人</button>
+        </div>
+      </div>
+      
+      <!-- 高级设置（可折叠，手动参数微调） -->
+      <div style="border:1px solid #2a3038;border-radius:8px;overflow:hidden;">
+        <div id="advanced-toggle" style="padding:12px 15px;cursor:pointer;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.02);user-select:none;">
+          <span id="advanced-arrow" style="color:#889;transition:transform 0.2s;display:inline-block;">▶</span>
+          <span style="color:#aabbcc;font-size:13px;">高级设置（手动调整参数）</span>
+        </div>
+        <div id="advanced-settings" style="display:none;padding:15px;border-top:1px solid #2a3038;">
+          <div class="form-row">
+            <div class="form-group">
+              <label>机器人类型</label>
+              <select id="solution-type" onchange="updateSolutionParams()">
+                <option value="humanoid">🤖 人形机器人</option>
+                <option value="arm">🦾 机械臂</option>
+                <option value="quadruped">🐕 四足机器狗</option>
+                <option value="gripper">✋ 夹爪/灵巧手</option>
+              </select>
+            </div>
+          </div>
+          
+          <div id="solution-params" class="form-row">
+            <!-- 动态生成参数输入框 -->
+          </div>
+          
+          <div style="margin-top:15px;">
+            <button class="btn btn-primary" id="btn-generate-solution">生成方案</button>
+            <button class="btn btn-secondary" id="btn-reset-solution">重置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="solution-result" style="margin-top:20px;"></div>
+  </div>
+
 </div>
 
 <div class="footer">
@@ -510,68 +919,76 @@ return i=this.parent.children.indexOf(this),removed=this.parent.children.splice(
 // 脉塔电机产品参数库
 // 数据来源：CN-展会手册-电机部分-260710.pdf (2026年6月版)
 // RH谐波模组取100减速比高扭矩端数值
+// 新增参数：背隙、重复定位精度、控制精度、编码器、轴向负载、径向负载、转动惯量
 
 const PRODUCTS = [
   // ===== RMD-X 行星模组 =====
-  {short:"X2-3", full:"RMD-X2-P9-3-C", type:"行星模组", rated:0.9, peak:3, power:41.8, speed:444, voltage:48, od:44, length:48.5, weight:0.23, comm:"CAN BUS", ratio:9, brake:"无"},
-  {short:"X2-7", full:"RMD-X2-P28-7-E", type:"行星模组", rated:2.5, peak:7, power:37, speed:142, voltage:24, od:44, length:63.5, weight:0.26, comm:"EtherCAT & CAN BUS", ratio:28.17, brake:"无"},
-  {short:"X2-7-L", full:"RMD-X2-P28-7-C-Lite", type:"行星模组", rated:2.5, peak:7, power:37, speed:142, voltage:24, od:44, length:56.5, weight:0.26, comm:"CAN BUS", ratio:28.17, brake:"无"},
-  {short:"X4-10", full:"RMD-X4-P12-10-E", type:"行星模组", rated:4, peak:10, power:100, speed:238, voltage:24, od:55, length:55.5, weight:0.33, comm:"EtherCAT & CAN BUS", ratio:12.5, brake:"无"},
-  {short:"X4-10-L", full:"RMD-X4-P12-10-E-L", type:"行星模组", rated:4, peak:10, power:100, speed:238, voltage:24, od:55, length:55.5, weight:0.33, comm:"EtherCAT & CAN BUS", ratio:12.5, brake:"无"},
-  {short:"X4-36", full:"RMD-X4-P36-36-E", type:"行星模组", rated:10.5, peak:34, power:100, speed:83, voltage:24, od:55, length:61, weight:0.36, comm:"EtherCAT & CAN BUS", ratio:36, brake:"无"},
-  {short:"X4-36-L", full:"RMD-X4-P36-36-E-L", type:"行星模组", rated:10.5, peak:34, power:100, speed:83, voltage:24, od:55, length:61, weight:0.36, comm:"EtherCAT & CAN BUS", ratio:36, brake:"无"},
-  {short:"X6-50-L", full:"RMD-X6-P20-50-E-L", type:"行星模组", rated:20, peak:50, power:320, speed:153, voltage:48, od:80, length:63.5, weight:0.78, comm:"EtherCAT & CAN BUS", ratio:19.612, brake:"无"},
-  {short:"X6-60", full:"RMD-X6-P20-60-E", type:"行星模组", rated:20, peak:60, power:320, speed:153, voltage:48, od:80, length:67.5, weight:0.82, comm:"EtherCAT & CAN BUS", ratio:19.612, brake:"无"},
-  {short:"X8-32", full:"RMD-X8-P9-32-R", type:"行星模组", rated:8, peak:32, power:204, speed:244, voltage:24, od:96, length:41.2, weight:0.53, comm:"RS485", ratio:9, brake:"无"},
-  {short:"X8-120", full:"RMD-X8-P20-120-E", type:"行星模组", rated:43, peak:120, power:574, speed:127, voltage:48, od:96, length:76, weight:1.4, comm:"EtherCAT & CAN BUS", ratio:19.612, brake:"无"},
-  {short:"X8-150-03", full:"RMD-X8-P20-150-E-03", type:"行星模组", rated:43, peak:150, power:574, speed:127, voltage:48, od:96, length:71, weight:1.33, comm:"EtherCAT & CAN BUS", ratio:19.612, brake:"无"},
-  {short:"X10-200", full:"RMD-X10-P20-200-E", type:"行星模组", rated:60, peak:200, power:465, speed:74, voltage:48, od:124, length:63.5, weight:1.64, comm:"EtherCAT & CAN BUS", ratio:20, brake:"无"},
-  {short:"X12-320", full:"RMD-X12-P20-320-E", type:"行星模组", rated:85, peak:320, power:900, speed:100, voltage:48, od:124, length:85, weight:2.37, comm:"EtherCAT & CAN BUS", ratio:20, brake:"无"},
-  {short:"X12-320-L", full:"RMD-X12-P20-320-E-03", type:"行星模组", rated:85, peak:320, power:900, speed:100, voltage:48, od:124, length:76.2, weight:2.28, comm:"EtherCAT & CAN BUS", ratio:20, brake:"无"},
-  {short:"X15-450", full:"RMD-X15-P20-450-E", type:"行星模组", rated:145, peak:450, power:1480, speed:98, voltage:72, od:166, length:90, weight:3.5, comm:"EtherCAT & CAN BUS", ratio:20.25, brake:"无"},
+  // 行星减速器背隙约10-15弧分，重复定位精度约0.1-0.5度，双编码器控制精度<0.01度
+  {short:"X2-3", full:"RMD-X2-P9-3-C", type:"行星模组", rated:0.9, peak:3, power:41.8, speed:444, voltage:48, od:44, length:48.5, weight:0.23, comm:"CAN BUS", ratio:9, brake:"无", backlash:15, repeatability:0.5, controlAccuracy:0.01, encoder:"单编码器 17BIT", axialLoad:0.5, radialLoad:0.8, inertia:0.17},
+  {short:"X2-7", full:"RMD-X2-P28-7-E", type:"行星模组", rated:2.5, peak:7, power:37, speed:142, voltage:24, od:44, length:63.5, weight:0.26, comm:"EtherCAT & CAN BUS", ratio:28.17, brake:"无", backlash:12, repeatability:0.3, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:0.8, radialLoad:1.2, inertia:0.17},
+  {short:"X2-7-L", full:"RMD-X2-P28-7-C-Lite", type:"行星模组", rated:2.5, peak:7, power:37, speed:142, voltage:24, od:44, length:56.5, weight:0.26, comm:"CAN BUS", ratio:28.17, brake:"无", backlash:12, repeatability:0.3, controlAccuracy:0.01, encoder:"单编码器 17BIT", axialLoad:0.8, radialLoad:1.2, inertia:0.17},
+  {short:"X4-10", full:"RMD-X4-P12-10-E", type:"行星模组", rated:4, peak:10, power:100, speed:238, voltage:24, od:55, length:55.5, weight:0.33, comm:"EtherCAT & CAN BUS", ratio:12.5, brake:"无", backlash:10, repeatability:0.25, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.2, radialLoad:2.0, inertia:0.25},
+  {short:"X4-10-L", full:"RMD-X4-P12-10-E-L", type:"行星模组", rated:4, peak:10, power:100, speed:238, voltage:24, od:55, length:55.5, weight:0.33, comm:"EtherCAT & CAN BUS", ratio:12.5, brake:"无", backlash:10, repeatability:0.25, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.2, radialLoad:2.0, inertia:0.25},
+  {short:"X4-36", full:"RMD-X4-P36-36-E", type:"行星模组", rated:10.5, peak:34, power:100, speed:83, voltage:24, od:55, length:61, weight:0.36, comm:"EtherCAT & CAN BUS", ratio:36, brake:"无", backlash:10, repeatability:0.2, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.2, radialLoad:2.0, inertia:0.3},
+  {short:"X4-36-L", full:"RMD-X4-P36-36-E-L", type:"行星模组", rated:10.5, peak:34, power:100, speed:83, voltage:24, od:55, length:61, weight:0.36, comm:"EtherCAT & CAN BUS", ratio:36, brake:"无", backlash:10, repeatability:0.2, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.2, radialLoad:2.0, inertia:0.3},
+  {short:"X6-50-L", full:"RMD-X6-P20-50-E-L", type:"行星模组", rated:20, peak:50, power:320, speed:153, voltage:48, od:80, length:63.5, weight:0.78, comm:"EtherCAT & CAN BUS", ratio:19.612, brake:"无", backlash:10, repeatability:0.15, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.8, radialLoad:2.5, inertia:0.66},
+  {short:"X6-60", full:"RMD-X6-P20-60-E", type:"行星模组", rated:20, peak:60, power:320, speed:153, voltage:48, od:80, length:67.5, weight:0.82, comm:"EtherCAT & CAN BUS", ratio:19.612, brake:"无", backlash:10, repeatability:0.15, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.8, radialLoad:2.5, inertia:0.66},
+  {short:"X8-32", full:"RMD-X8-P9-32-R", type:"行星模组", rated:8, peak:32, power:204, speed:244, voltage:24, od:96, length:41.2, weight:0.53, comm:"RS485", ratio:9, brake:"无", backlash:15, repeatability:0.5, controlAccuracy:0.05, encoder:"单编码器 17BIT", axialLoad:2.0, radialLoad:3.0, inertia:1.0},
+  {short:"X8-120", full:"RMD-X8-P20-120-E", type:"行星模组", rated:43, peak:120, power:574, speed:127, voltage:48, od:96, length:76, weight:1.4, comm:"EtherCAT & CAN BUS", ratio:19.612, brake:"无", backlash:10, repeatability:0.1, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT/18BIT", axialLoad:4.0, radialLoad:4.5, inertia:1.5},
+  {short:"X8-150-03", full:"RMD-X8-P20-150-E-03", type:"行星模组", rated:43, peak:150, power:574, speed:127, voltage:48, od:96, length:71, weight:1.33, comm:"EtherCAT & CAN BUS", ratio:19.612, brake:"无", backlash:10, repeatability:0.1, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT/18BIT", axialLoad:4.0, radialLoad:4.5, inertia:1.5},
+  {short:"X10-200", full:"RMD-X10-P20-200-E", type:"行星模组", rated:60, peak:200, power:465, speed:74, voltage:48, od:124, length:63.5, weight:1.64, comm:"EtherCAT & CAN BUS", ratio:20, brake:"无", backlash:10, repeatability:0.1, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT/18BIT", axialLoad:5.0, radialLoad:6.0, inertia:3.0},
+  {short:"X12-320", full:"RMD-X12-P20-320-E", type:"行星模组", rated:85, peak:320, power:900, speed:100, voltage:48, od:124, length:85, weight:2.37, comm:"EtherCAT & CAN BUS", ratio:20, brake:"无", backlash:10, repeatability:0.08, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT/18BIT", axialLoad:6.0, radialLoad:8.0, inertia:12.9},
+  {short:"X12-320-L", full:"RMD-X12-P20-320-E-03", type:"行星模组", rated:85, peak:320, power:900, speed:100, voltage:48, od:124, length:76.2, weight:2.28, comm:"EtherCAT & CAN BUS", ratio:20, brake:"无", backlash:10, repeatability:0.08, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT/18BIT", axialLoad:6.0, radialLoad:8.0, inertia:12.9},
+  {short:"X15-450", full:"RMD-X15-P20-450-E", type:"行星模组", rated:145, peak:450, power:1480, speed:98, voltage:72, od:166, length:90, weight:3.5, comm:"EtherCAT & CAN BUS", ratio:20.25, brake:"无", backlash:10, repeatability:0.08, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT/18BIT", axialLoad:8.0, radialLoad:10.0, inertia:31.6},
 
   // ===== RH 谐波模组 (100减速比) =====
-  {short:"RH-14", full:"EPS-RH-14-100-E-N-D", type:"谐波模组", rated:11, peak:28, power:28, speed:25, voltage:48, od:70, length:81.7, weight:0.78, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制"},
-  {short:"RH-17", full:"EPS-RH-17-100-E-N-D", type:"谐波模组", rated:35, peak:54, power:91, speed:25, voltage:48, od:80, length:90.2, weight:1.11, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制"},
-  {short:"RH-20", full:"EPS-RH-20-100-E-N-D", type:"谐波模组", rated:50, peak:80, power:130, speed:25, voltage:48, od:90, length:82.9, weight:1.45, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制"},
-  {short:"RH-25", full:"EPS-RH-25-100-E-N-D", type:"谐波模组", rated:108, peak:157, power:282, speed:25, voltage:48, od:110, length:89.5, weight:2.42, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制"},
-  {short:"RH-32", full:"EPS-RH-32-100-E-N-D", type:"谐波模组", rated:150, peak:229, power:282, speed:18, voltage:48, od:142, length:108.4, weight:4.32, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制"},
+  // 谐波减速器背隙<1弧分（接近零背隙），重复定位精度<0.01度
+  {short:"RH-14", full:"EPS-RH-14-100-E-N-D", type:"谐波模组", rated:11, peak:28, power:28, speed:25, voltage:48, od:70, length:81.7, weight:0.78, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制", backlash:0.5, repeatability:0.01, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.0, radialLoad:1.5, inertia:0.5},
+  {short:"RH-17", full:"EPS-RH-17-100-E-N-D", type:"谐波模组", rated:35, peak:54, power:91, speed:25, voltage:48, od:80, length:90.2, weight:1.11, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制", backlash:0.5, repeatability:0.01, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.5, radialLoad:2.0, inertia:0.8},
+  {short:"RH-20", full:"EPS-RH-20-100-E-N-D", type:"谐波模组", rated:50, peak:80, power:130, speed:25, voltage:48, od:90, length:82.9, weight:1.45, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制", backlash:0.5, repeatability:0.01, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:2.0, radialLoad:2.5, inertia:1.2},
+  {short:"RH-25", full:"EPS-RH-25-100-E-N-D", type:"谐波模组", rated:108, peak:157, power:282, speed:25, voltage:48, od:110, length:89.5, weight:2.42, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制", backlash:0.5, repeatability:0.01, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:3.0, radialLoad:4.0, inertia:2.0},
+  {short:"RH-32", full:"EPS-RH-32-100-E-N-D", type:"谐波模组", rated:150, peak:229, power:282, speed:18, voltage:48, od:142, length:108.4, weight:4.32, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制", backlash:0.5, repeatability:0.01, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:4.5, radialLoad:6.0, inertia:3.5},
 
   // ===== HM 轻量谐波 =====
-  {short:"HM-40", full:"EPS-HM-40-100-C-N-D", type:"轻量谐波", rated:3.5, peak:10, power:11, speed:30, voltage:48, od:40, length:63.8, weight:0.2, comm:"CAN BUS", ratio:100, brake:"需定制"},
-  {short:"HM-50", full:"EPS-HM-50-80-E-N-D", type:"轻量谐波", rated:8, peak:25, power:33, speed:40, voltage:48, od:50, length:72, weight:0.4, comm:"CAN BUS / EtherCAT", ratio:80, brake:"需定制"},
-  {short:"HM-60", full:"EPS-HM-60-100-E-N-D", type:"轻量谐波", rated:15, peak:37, power:31, speed:20, voltage:48, od:60, length:77.5, weight:0.65, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制"},
-  {short:"HM-70", full:"EPS-HM-70-100-E-N-D", type:"轻量谐波", rated:26, peak:65, power:55, speed:20, voltage:48, od:70, length:82.8, weight:0.92, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制"},
+  // 谐波减速器背隙<1弧分，重复定位精度<0.01度，轻量化设计
+  {short:"HM-40", full:"EPS-HM-40-100-C-N-D", type:"轻量谐波", rated:3.5, peak:10, power:11, speed:30, voltage:48, od:40, length:63.8, weight:0.2, comm:"CAN BUS", ratio:100, brake:"需定制", backlash:0.8, repeatability:0.02, controlAccuracy:0.01, encoder:"单编码器 17BIT", axialLoad:0.5, radialLoad:0.8, inertia:0.15},
+  {short:"HM-50", full:"EPS-HM-50-80-E-N-D", type:"轻量谐波", rated:8, peak:25, power:33, speed:40, voltage:48, od:50, length:72, weight:0.4, comm:"CAN BUS / EtherCAT", ratio:80, brake:"需定制", backlash:0.8, repeatability:0.02, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:0.8, radialLoad:1.2, inertia:0.3},
+  {short:"HM-60", full:"EPS-HM-60-100-E-N-D", type:"轻量谐波", rated:15, peak:37, power:31, speed:20, voltage:48, od:60, length:77.5, weight:0.65, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制", backlash:0.8, repeatability:0.02, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.0, radialLoad:1.5, inertia:0.5},
+  {short:"HM-70", full:"EPS-HM-70-100-E-N-D", type:"轻量谐波", rated:26, peak:65, power:55, speed:20, voltage:48, od:70, length:82.8, weight:0.92, comm:"CAN BUS / EtherCAT", ratio:100, brake:"需定制", backlash:0.8, repeatability:0.02, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.5, radialLoad:2.0, inertia:0.8},
 
   // ===== CEM 摆线模组 =====
-  {short:"CEM-15", full:"EPS-CEM-15-E-N", type:"摆线模组", rated:9, peak:15, power:132, speed:140, voltage:48, od:70, length:75.9, weight:0.81, comm:"CAN BUS & EtherCAT", ratio:30, brake:"无"},
-  {short:"CEM-25", full:"EPS-CEM-25-E-N", type:"摆线模组", rated:15, peak:25, power:157, speed:100, voltage:48, od:82, length:82, weight:0.94, comm:"CAN BUS & EtherCAT", ratio:30, brake:"无"},
-  {short:"CEM-45", full:"EPS-CEM-45-E-N", type:"摆线模组", rated:25, peak:45, power:210, speed:80, voltage:48, od:85.5, length:85.5, weight:1.09, comm:"CAN BUS & EtherCAT", ratio:30, brake:"无"},
+  // 摆线减速器背隙约1-3弧分，重复定位精度约0.05度
+  {short:"CEM-15", full:"EPS-CEM-15-E-N", type:"摆线模组", rated:9, peak:15, power:132, speed:140, voltage:48, od:70, length:75.9, weight:0.81, comm:"CAN BUS & EtherCAT", ratio:30, brake:"无", backlash:2, repeatability:0.05, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:1.5, radialLoad:2.0, inertia:0.6},
+  {short:"CEM-25", full:"EPS-CEM-25-E-N", type:"摆线模组", rated:15, peak:25, power:157, speed:100, voltage:48, od:82, length:82, weight:0.94, comm:"CAN BUS & EtherCAT", ratio:30, brake:"无", backlash:2, repeatability:0.05, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:2.0, radialLoad:2.5, inertia:0.9},
+  {short:"CEM-45", full:"EPS-CEM-45-E-N", type:"摆线模组", rated:25, peak:45, power:210, speed:80, voltage:48, od:85.5, length:85.5, weight:1.09, comm:"CAN BUS & EtherCAT", ratio:30, brake:"无", backlash:2, repeatability:0.05, controlAccuracy:0.01, encoder:"双编码器 ABS-17BIT", axialLoad:2.5, radialLoad:3.5, inertia:1.5},
 
   // ===== H 中空直驱 =====
-  {short:"H-30-08", full:"RMD-H-30-08-15-C", type:"中空直驱", rated:0.03, peak:0.1, power:15, speed:5000, voltage:24, od:30, length:29, weight:null, comm:"CAN BUS", ratio:"无减速器", brake:"无"},
-  {short:"H-35-10", full:"RMD-H-35-10", type:"中空直驱", rated:0.1, peak:0.3, power:30, speed:3000, voltage:24, od:35, length:null, weight:null, comm:"CAN BUS", ratio:"无减速器", brake:"无"},
-  {short:"H-40-15", full:"RMD-H-40-15-50-C", type:"中空直驱", rated:0.15, peak:0.3, power:47, speed:3000, voltage:24, od:40, length:48, weight:0.2, comm:"CAN BUS", ratio:"无减速器", brake:"无"},
-  {short:"H-50-15", full:"RMD-H-50-15-100-C", type:"中空直驱", rated:0.35, peak:0.9, power:91.6, speed:2500, voltage:24, od:50, length:46, weight:0.24, comm:"CAN BUS", ratio:"无减速器", brake:"无"},
-  {short:"H-70-15", full:"RMD-H-70-15-200-C", type:"中空直驱", rated:0.8, peak:2, power:200, speed:2400, voltage:48, od:70, length:49.5, weight:0.47, comm:"CAN BUS", ratio:"无减速器", brake:"无"},
-  {short:"H-90-15", full:"RMD-H-90-15-400-C", type:"中空直驱", rated:1.5, peak:3.75, power:252, speed:1600, voltage:48, od:90, length:48.5, weight:0.71, comm:"CAN BUS", ratio:"无减速器", brake:"无"},
+  // 直驱无减速器，背隙为0，精度取决于编码器
+  {short:"H-30-08", full:"RMD-H-30-08-15-C", type:"中空直驱", rated:0.03, peak:0.1, power:15, speed:5000, voltage:24, od:30, length:29, inner:8, weight:null, comm:"CAN BUS", ratio:"无减速器", brake:"无", backlash:0, repeatability:0.05, controlAccuracy:0.02, encoder:"单编码器 17BIT", axialLoad:0.2, radialLoad:0.3, inertia:0.05},
+  {short:"H-35-10", full:"RMD-H-35-10", type:"中空直驱", rated:0.1, peak:0.3, power:30, speed:3000, voltage:24, od:35, length:null, inner:10, weight:null, comm:"CAN BUS", ratio:"无减速器", brake:"无", backlash:0, repeatability:0.05, controlAccuracy:0.02, encoder:"单编码器 17BIT", axialLoad:0.3, radialLoad:0.5, inertia:0.08},
+  {short:"H-40-15", full:"RMD-H-40-15-50-C", type:"中空直驱", rated:0.15, peak:0.3, power:47, speed:3000, voltage:24, od:40, length:48, inner:15, weight:0.2, comm:"CAN BUS", ratio:"无减速器", brake:"无", backlash:0, repeatability:0.05, controlAccuracy:0.02, encoder:"单编码器 17BIT", axialLoad:0.5, radialLoad:0.8, inertia:0.12},
+  {short:"H-50-15", full:"RMD-H-50-15-100-C", type:"中空直驱", rated:0.35, peak:0.9, power:91.6, speed:2500, voltage:24, od:50, length:46, inner:15, weight:0.24, comm:"CAN BUS", ratio:"无减速器", brake:"无", backlash:0, repeatability:0.05, controlAccuracy:0.02, encoder:"单编码器 17BIT", axialLoad:0.8, radialLoad:1.2, inertia:0.2},
+  {short:"H-70-15", full:"RMD-H-70-15-200-C", type:"中空直驱", rated:0.8, peak:2, power:200, speed:2400, voltage:48, od:70, length:49.5, inner:15, weight:0.47, comm:"CAN BUS", ratio:"无减速器", brake:"无", backlash:0, repeatability:0.05, controlAccuracy:0.02, encoder:"单编码器 17BIT", axialLoad:1.87, radialLoad:0.44, inertia:1.8},
+  {short:"H-90-15", full:"RMD-H-90-15-400-C", type:"中空直驱", rated:1.5, peak:3.75, power:252, speed:1600, voltage:48, od:90, length:48.5, inner:15, weight:0.71, comm:"CAN BUS", ratio:"无减速器", brake:"无", backlash:0, repeatability:0.05, controlAccuracy:0.02, encoder:"单编码器 17BIT", axialLoad:2.5, radialLoad:1.0, inertia:3.0},
 
   // ===== FL 无框电机 =====
-  {short:"FL-25-18", full:"RMD-FL-25-18-100", type:"无框电机", rated:0.15, peak:0.45, power:95.5, speed:4000, voltage:24, od:38, length:18, weight:0.04, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FL-38-08", full:"RMD-FL-38-08-100", type:"无框电机", rated:0.1, peak:0.32, power:94, speed:9000, voltage:48, od:38, length:8, weight:0.05, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FL-38-12", full:"RMD-FL-38-12-240", type:"无框电机", rated:0.23, peak:0.47, power:240, speed:9970, voltage:48, od:38, length:12, weight:0.1, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FL-50-08", full:"FL-50-08", type:"无框电机", rated:0.3, peak:0.96, power:163, speed:5200, voltage:48, od:50, length:8, weight:0.12, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FL-50-15", full:"RMD-FL-50-15-200", type:"无框电机", rated:0.51, peak:1.5, power:203, speed:3800, voltage:48, od:50, length:15, weight:0.16, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FL-70-10", full:"RMD-FL-70-10-250", type:"无框电机", rated:0.55, peak:1.65, power:201, speed:3500, voltage:48, od:70, length:10, weight:0.25, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FL-70-16", full:"RMD-FL-70-16-360", type:"无框电机", rated:1.3, peak:2.6, power:408, speed:3000, voltage:48, od:70, length:16, weight:0.32, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FL-85-13", full:"RMD-FL-85-13-500", type:"无框电机", rated:1.3, peak:3.9, power:408, speed:2400, voltage:48, od:85, length:13, weight:0.46, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FL-85-23", full:"RMD-FL-85-23-750", type:"无框电机", rated:2, peak:6, power:733, speed:3500, voltage:48, od:85, length:23, weight:0.61, comm:"-", ratio:"无减速器", brake:"无"},
+  // 直驱无减速器，背隙为0，需外接减速器和编码器
+  {short:"FL-25-18", full:"RMD-FL-25-18-100", type:"无框电机", rated:0.15, peak:0.45, power:95.5, speed:4000, voltage:24, od:38, length:18, weight:0.04, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.02},
+  {short:"FL-38-08", full:"RMD-FL-38-08-100", type:"无框电机", rated:0.1, peak:0.32, power:94, speed:9000, voltage:48, od:38, length:8, weight:0.05, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.03},
+  {short:"FL-38-12", full:"RMD-FL-38-12-240", type:"无框电机", rated:0.23, peak:0.47, power:240, speed:9970, voltage:48, od:38, length:12, weight:0.1, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.05},
+  {short:"FL-50-08", full:"FL-50-08", type:"无框电机", rated:0.3, peak:0.96, power:163, speed:5200, voltage:48, od:50, length:8, weight:0.12, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.08},
+  {short:"FL-50-15", full:"RMD-FL-50-15-200", type:"无框电机", rated:0.51, peak:1.5, power:203, speed:3800, voltage:48, od:50, length:15, weight:0.16, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.12},
+  {short:"FL-70-10", full:"RMD-FL-70-10-250", type:"无框电机", rated:0.55, peak:1.65, power:201, speed:3500, voltage:48, od:70, length:10, weight:0.25, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.2},
+  {short:"FL-70-16", full:"RMD-FL-70-16-360", type:"无框电机", rated:1.3, peak:2.6, power:408, speed:3000, voltage:48, od:70, length:16, weight:0.32, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.35},
+  {short:"FL-85-13", full:"RMD-FL-85-13-500", type:"无框电机", rated:1.3, peak:3.9, power:408, speed:2400, voltage:48, od:85, length:13, weight:0.46, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.5},
+  {short:"FL-85-23", full:"RMD-FL-85-23-750", type:"无框电机", rated:2, peak:6, power:733, speed:3500, voltage:48, od:85, length:23, weight:0.61, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.8},
 
   // ===== FLO 无框电机 =====
-  {short:"FLO-40-15", full:"RMD-FLO-40-15-50", type:"无框电机", rated:0.15, peak:0.3, power:47, speed:3000, voltage:24, od:40, length:33, weight:0.13, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FLO-50-15", full:"RMD-FLO-50-15-100", type:"无框电机", rated:0.35, peak:0.87, power:91.6, speed:2500, voltage:24, od:50, length:31.3, weight:0.19, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FLO-70-15", full:"RMD-FLO-70-15-200", type:"无框电机", rated:0.8, peak:2, power:200, speed:2400, voltage:48, od:70, length:31, weight:0.33, comm:"-", ratio:"无减速器", brake:"无"},
-  {short:"FLO-90-15", full:"RMD-FLO-90-15-400", type:"无框电机", rated:1.5, peak:3.75, power:252, speed:1600, voltage:48, od:90, length:30.3, weight:0.46, comm:"-", ratio:"无减速器", brake:"无"}
+  // 直驱无减速器，背隙为0，需外接减速器和编码器
+  {short:"FLO-40-15", full:"RMD-FLO-40-15-50", type:"无框电机", rated:0.15, peak:0.3, power:47, speed:3000, voltage:24, od:40, length:33, weight:0.13, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.06},
+  {short:"FLO-50-15", full:"RMD-FLO-50-15-100", type:"无框电机", rated:0.35, peak:0.87, power:91.6, speed:2500, voltage:24, od:50, length:31.3, weight:0.19, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.1},
+  {short:"FLO-70-15", full:"RMD-FLO-70-15-200", type:"无框电机", rated:0.8, peak:2, power:200, speed:2400, voltage:48, od:70, length:31, weight:0.33, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.25},
+  {short:"FLO-90-15", full:"RMD-FLO-90-15-400", type:"无框电机", rated:1.5, peak:3.75, power:252, speed:1600, voltage:48, od:90, length:30.3, weight:0.46, comm:"-", ratio:"无减速器", brake:"无", backlash:0, repeatability:null, controlAccuracy:null, encoder:"需外接", axialLoad:null, radialLoad:null, inertia:0.5}
 ];
 
 const MODULE_TYPES = ["行星模组", "谐波模组", "轻量谐波", "摆线模组", "中空直驱", "无框电机"];
@@ -635,6 +1052,22 @@ function selectProducts(reqRated, reqPeak, tolerance, filters) {
   // 电压筛选
   if (filters.voltage && filters.voltage !== "all") {
     results = results.filter(p => p.voltage === parseInt(filters.voltage));
+  }
+  // 总长筛选（≤）
+  if (filters.maxLength && filters.maxLength > 0) {
+    results = results.filter(p => p.length && p.length <= filters.maxLength);
+  }
+  // 外径筛选（≤）
+  if (filters.maxOd && filters.maxOd > 0) {
+    results = results.filter(p => p.od && p.od <= filters.maxOd);
+  }
+  // 转速筛选（≥）
+  if (filters.minSpeed && filters.minSpeed > 0) {
+    results = results.filter(p => p.speed && p.speed >= filters.minSpeed);
+  }
+  // 功率筛选（≥）
+  if (filters.minPower && filters.minPower > 0) {
+    results = results.filter(p => p.power && p.power >= filters.minPower);
   }
 
   // 排序逻辑：
@@ -1355,6 +1788,1983 @@ function parseTextInput() {
   doDocSelect();
 }
 
+// ===== 智能问答模块 =====
+let aiChatHistory = [];
+
+// 常见问题知识库
+const FAQ_KNOWLEDGE = [
+  {
+    keywords: ['行星', '谐波', '区别', '差异', '对比'],
+    answer: `**行星模组 vs 谐波模组区别：**
+
+1. **减速原理**：行星模组采用行星齿轮减速，谐波模组采用谐波齿轮减速（柔轮+刚轮+波发生器）。
+
+2. **扭矩密度**：谐波模组扭矩密度更高，相同体积下能输出更大扭矩。
+
+3. **精度**：谐波模组回程间隙更小（通常<1弧分），定位精度更高；行星模组有一定齿隙。
+
+4. **寿命**：行星模组寿命更长，耐冲击能力强；谐波模组柔轮有疲劳寿命限制。
+
+5. **成本**：行星模组成本较低，谐波模组成本较高。
+
+6. **应用场景**：
+   - 行星模组：工业机械臂、AGV、自动化设备（重载、长寿命需求）
+   - 谐波模组：协作机器人、人形机器人、精密设备（高精度、轻量化需求）
+
+脉塔产品：
+- 行星模组：RMD-X系列（X2-X15，共16款）
+- 谐波模组：RH系列（RH-14到RH-32，共5款）+ HM轻量谐波（4款）`
+  },
+  {
+    keywords: ['抱闸', '刹车', '制动', '断电'],
+    answer: `**关于抱闸（刹车）：**
+
+1. 脉塔电机**标准品为无抱闸版本**，抱闸为定制选项。
+
+2. 抱闸作用：断电时保持电机位置，防止负载下坠，常用于垂直轴、重力负载场景。
+
+3. 定制说明：
+   - RH系列谐波模组有N版（无抱闸）和B版（抱闸），重量不同
+   - X系列行星模组抱闸需单独定制
+   - 定制周期通常需要额外确认
+
+4. 选型建议：如果应用有垂直轴或断电保持需求，请在选型时注明需要抱闸版本。`
+  },
+  {
+    keywords: ['通信', '协议', 'ethercat', 'can', 'rs485', '总线'],
+    answer: `**通信协议支持：**
+
+脉塔电机支持多种通信协议：
+
+1. **EtherCAT**：高性能工业总线，延迟低，适合多轴同步控制（推荐）
+2. **CAN BUS**：经典工业总线，成本低，应用广泛
+3. **RS485**：串行通信，简单易用，适合单轴控制
+
+具体型号的协议支持请查看产品库或直接询问型号参数。
+
+选型建议：
+- 多轴机械臂/机器人：推荐EtherCAT
+- 单轴/简单控制：CAN或RS485即可`
+  },
+  {
+    keywords: ['电压', '供电', '24v', '48v', '72v', '电源'],
+    answer: `**供电电压说明：**
+
+脉塔电机主要有以下电压等级：
+
+1. **24V**：小功率电机（X2系列、H系列、FL系列），适合低压应用
+2. **48V**：主流电压，大部分中大功率电机（X4-X12、RH、HM、CEM系列）
+3. **72V**：部分大功率型号可选
+
+选型建议：
+- 移动机器人/AGV：通常24V或48V（与电池电压匹配）
+- 工业设备：通常48V
+- 具体型号电压请查看产品库参数`
+  },
+  {
+    keywords: ['人形机器人', '人形', '机器人', '关节'],
+    answer: `**人形机器人关节选型建议：**
+
+人形机器人关节通常要求：高扭矩密度、轻量化、高精度。
+
+推荐方案（全行星模组，基于5kg负载双臂）：
+- **肩部（J1-J2）**：峰值>80Nm → X8-120（43/120Nm，96×76mm）
+- **肘部（J3-J4）**：峰值>65Nm → X6-60（20/60Nm，80×67.5mm）
+- **腕部（J5-J7）**：峰值>25Nm → X4-36（10.5/34Nm，55×61mm）
+
+如果追求更高精度和更轻重量，可考虑：
+- RH系列谐波模组（扭矩密度更高）
+- HM系列轻量谐波（更轻量化）
+
+请使用"文档导入选型"或"手动选型"功能获取精确推荐。`
+  },
+  {
+    keywords: ['价格', '多少钱', '报价', '成本'],
+    answer: `**关于价格：**
+
+抱歉，本选型系统不包含产品价格信息。
+
+价格受以下因素影响：
+1. 具体型号和配置
+2. 采购数量（批量有优惠）
+3. 是否需要抱闸定制
+4. 是否需要特殊通信协议定制
+
+请联系脉塔智能销售团队获取正式报价：
+- 官网：www.myactuator.com
+- 或通过您的业务对接人咨询`
+  },
+  {
+    keywords: ['选型', '怎么选', '如何选', '推荐'],
+    answer: `**如何选型：**
+
+您可以通过以下方式获取选型推荐：
+
+1. **手动选型**：输入额定扭矩、峰值扭矩，选择模组类型，点击"开始选型"
+2. **文档导入选型**：上传Excel/Word需求文档，系统自动识别参数并推荐
+3. **图片识别**：上传需求图片，OCR自动识别参数
+4. **文本粘贴**：粘贴需求文字，自动识别参数
+
+选型核心逻辑：
+- 优先满足额定扭矩和峰值扭矩（最大不足量≤5Nm为基本满足）
+- 基本满足的产品按总偏差从小到大排序（避免性能过剩）
+- 偏差接近时优先选尺寸更小、重量更轻的
+- 按模组类型分类展示结果
+
+您也可以直接描述需求，例如："我需要峰值50Nm的行星电机"，我来为您推荐。`
+  },
+  {
+    keywords: ['内径', '中空', '中孔', '空心', '穿线', '过孔', 'bore', 'inner'],
+    answer: `**关于内径（中空孔）：**
+
+内径（中空孔）是**H系列中空直驱模组**的特有参数，其他系列（行星、谐波、无框等）为实心轴，没有中空孔。
+
+H系列中空直驱模组内径参数：
+- H-30-08：外径30mm，内径8mm
+- H-35-10：外径35mm，内径10mm
+- H-40-15：外径40mm，内径15mm
+- H-50-15：外径50mm，内径15mm
+- H-70-15：外径70mm，内径15mm
+- H-90-15：外径90mm，内径15mm
+
+**中空孔用途**：
+- 方便线缆、气管从电机中心穿过
+- 适用于旋转台、云台、激光雷达等需要中心走线的场景
+- 减少外部线缆缠绕，结构更紧凑
+
+如果您需要大中空孔的高精度旋转方案，推荐H系列中空直驱模组。`
+  },
+  {
+    keywords: ['尺寸', '外径', '长度', '体积', '多大'],
+    answer: `**关于尺寸：**
+
+产品尺寸格式为：**总长×外径 mm**
+
+各系列典型尺寸范围：
+- X2系列：40mm外径，总长48.5-63.5mm（最小）
+- X4系列：55mm外径，总长61mm
+- X6系列：80mm外径，总长63.5-67.5mm
+- X8系列：96mm外径，总长71-76mm
+- X10系列：124mm外径，总长63.5mm
+- X12系列：150mm外径，总长76.2-85mm
+- X15系列：180mm外径，总长95mm（最大）
+- RH系列：68-120mm外径
+- HM系列：70-100mm外径（轻量化）
+
+具体型号尺寸请查看产品库或询问具体型号。`
+  },
+  {
+    keywords: ['重量', '多重', '质量', 'kg'],
+    answer: `**关于重量：**
+
+各系列典型重量范围：
+- X2系列：约0.3-0.5kg
+- X4系列：约0.8-1.2kg
+- X6系列：约1.5-2.0kg
+- X8系列：约2.5-3.5kg
+- X10系列：约4.5kg
+- X12系列：约7-8kg
+- X15系列：约12kg
+- RH系列：约0.6-3.5kg（N版/B版重量不同）
+- HM系列：约0.5-1.5kg（轻量化设计）
+
+具体型号重量请查看产品库或询问具体型号。
+
+注：RH系列谐波模组有N版（无抱闸）和B版（抱闸），B版重量更大。`
+  },
+  {
+    keywords: ['转速', '速度', 'rpm', '多快'],
+    answer: `**关于转速：**
+
+脉塔电机转速因型号而异，典型范围：
+- 小功率电机（X2/X4）：输出转速约50-100rpm
+- 中功率电机（X6/X8）：输出转速约30-60rpm
+- 大功率电机（X10/X12/X15）：输出转速约20-40rpm
+- 谐波模组（RH/HM）：输出转速约20-50rpm
+
+注意：以上为减速后输出转速，电机本体转速通常更高（数千rpm）。
+
+具体型号转速请查看产品库或询问具体型号。`
+  },
+  {
+    keywords: ['背隙', '回程间隙', '齿隙', '空程', 'arcmin', '弧分'],
+    answer: `**关于背隙（回程间隙）：**
+
+背隙是减速器输出轴在输入轴固定时可转动的角度，单位为弧分(arcmin)，1度=60弧分。
+
+脉塔各系列背隙参数：
+1. **行星模组（X系列）**：约10-15弧分
+   - X2系列：12-15弧分
+   - X4/X6/X8/X10/X12/X15系列：约10弧分
+2. **谐波模组（RH系列）**：<1弧分（接近零背隙）
+3. **轻量谐波（HM系列）**：约0.8弧分
+4. **摆线模组（CEM系列）**：约2弧分
+5. **中空直驱（H系列）**：0弧分（直驱无减速器）
+6. **无框电机（FL/FLO系列）**：0弧分（需外接减速器）
+
+**选型建议：**
+- 高精度场景（精密装配、测量）：选谐波模组（背隙<1弧分）
+- 一般工业场景：行星模组即可（10-15弧分）
+- 对背隙零要求：直驱电机或高精度谐波
+
+在"方案推荐"功能中可设置背隙要求，系统会自动筛选符合要求的产品。`
+  },
+  {
+    keywords: ['精度', '重复定位', '定位精度', '控制精度', '误差', '准确度'],
+    answer: `**关于控制精度与重复定位精度：**
+
+**重复定位精度**：多次运动到同一位置的偏差程度，单位为度。
+
+脉塔各系列重复定位精度：
+1. **谐波模组（RH系列）**：<0.01度（最高精度）
+2. **轻量谐波（HM系列）**：约0.02度
+3. **摆线模组（CEM系列）**：约0.05度
+4. **行星模组（X系列）**：约0.08-0.5度
+   - 大扭矩型号（X10/X12/X15）：0.08-0.1度
+   - 中扭矩型号（X6/X8）：0.1-0.15度
+   - 小扭矩型号（X2/X4）：0.2-0.5度
+5. **中空直驱（H系列）**：约0.05度
+
+**控制精度**：脉塔电机采用双编码器（输入+输出），控制精度可达<0.01度。
+
+**选型建议：**
+- 精密装配、手术机器人：选RH谐波（<0.01度）
+- 协作机器人：RH谐波或HM轻量谐波
+- 工业机械臂：X系列行星模组即可
+- 高精度云台：H系列直驱
+
+在"方案推荐"功能中可设置重复定位精度要求，系统会自动筛选。`
+  },
+  {
+    keywords: ['编码器', '编码', '分辨率', '绝对值', '增量', '17bit', '双编码器'],
+    answer: `**关于编码器：**
+
+脉塔电机编码器配置：
+
+1. **双编码器配置**（大部分型号）：
+   - 输入编码器：ABS-17BIT绝对式（电机端）
+   - 输出编码器：17-18BIT绝对式（负载端）
+   - 优势：可实时监测负载端实际位置，消除减速器误差
+
+2. **单编码器配置**（部分型号）：
+   - X2-3、X2-7-L、X8-32、H系列：单编码器17BIT
+
+3. **无框电机（FL/FLO系列）**：需外接编码器
+
+**编码器作用：**
+- 位置反馈：精确控制电机转角
+- 速度反馈：实现稳定的速度控制
+- 电流反馈：实现力矩控制
+- 双编码器可补偿减速器背隙和弹性变形
+
+**选型建议：**
+- 高精度场景：选双编码器型号
+- 成本敏感场景：单编码器也可满足基本需求
+
+具体型号编码器配置请查看产品库或询问具体型号。`
+  },
+  {
+    keywords: ['方案', '系统方案', '组成方案', '机器人方案', '选型方案', '推荐方案'],
+    answer: `**关于机器人系统方案推荐：**
+
+本系统提供"方案推荐"功能，可根据您的需求自动生成完整的机器人关节选型方案。
+
+**支持的机器人类型：**
+1. **人形机器人**：输入身高、重量、负载、行走速度，自动生成全身30+关节方案
+2. **机械臂**：输入末端负载、臂展、轴数，自动生成6/7轴关节方案
+3. **四足机器狗**：输入重量、负载、速度，自动生成12自由度腿部方案
+4. **夹爪/灵巧手**：输入夹持力、抓取重量，自动生成末端执行器方案
+
+**方案包含内容：**
+- 总自由度、关节数量、估算总功率
+- 每个关节的负载、额定扭矩、峰值扭矩
+- 每个关节推荐前3款脉塔电机
+- 满足状态判断（精确满足/满足/满足但过配）
+- 推荐电机BOM清单（型号、数量、参数汇总）
+- 背隙和重复定位精度参数
+
+**精度筛选：**
+- 可设置背隙要求（弧分）和重复定位精度要求（度）
+- 系统会优先推荐符合精度要求的产品
+- 例如要求背隙<1弧分，会优先推荐谐波模组
+
+使用方法：点击顶部"方案推荐"标签，选择机器人类型，输入参数，点击"生成方案"。`
+  }
+];
+
+// 主问答函数
+function askAI() {
+  const input = document.getElementById('ai-input');
+  const question = input.value.trim();
+  
+  if (!question) {
+    showToast('请输入您的问题', 'error');
+    return;
+  }
+  
+  // 添加用户问题到对话
+  addChatMessage('user', question);
+  input.value = '';
+  
+  // 检查是否配置了豆包API
+  const apiKey = localStorage.getItem('doubao_api_key');
+  const endpoint = localStorage.getItem('doubao_endpoint');
+  
+  if (apiKey && endpoint) {
+    // 使用豆包API
+    callDoubaoAPI(question, apiKey, endpoint);
+  } else {
+    // 使用本地知识库
+    const answer = analyzeQuestion(question);
+    setTimeout(() => {
+      addChatMessage('ai', answer);
+    }, 300);
+  }
+}
+
+// 调用豆包API
+async function callDoubaoAPI(question, apiKey, endpoint) {
+  // 显示"正在思考"状态
+  const thinkingDiv = document.createElement('div');
+  thinkingDiv.className = 'chat-message chat-ai';
+  thinkingDiv.id = 'ai-thinking';
+  thinkingDiv.innerHTML = `
+    <div class="chat-avatar">🤖</div>
+    <div class="chat-content">
+      <div class="chat-name">智能助手</div>
+      <div class="chat-text">正在思考...</div>
+    </div>
+  `;
+  document.getElementById('ai-chat').appendChild(thinkingDiv);
+  document.getElementById('ai-chat').scrollTop = document.getElementById('ai-chat').scrollHeight;
+  
+  try {
+    // 构建系统提示词，包含产品库信息
+    const systemPrompt = buildSystemPrompt();
+    
+    const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: endpoint,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: question }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+    
+    // 移除"正在思考"
+    const thinking = document.getElementById('ai-thinking');
+    if (thinking) thinking.remove();
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || 'API调用失败: ' + response.status);
+    }
+    
+    const data = await response.json();
+    const answer = data.choices?.[0]?.message?.content || '抱歉，未能获取回答';
+    
+    addChatMessage('ai', answer);
+    
+  } catch (err) {
+    // 移除"正在思考"
+    const thinking = document.getElementById('ai-thinking');
+    if (thinking) thinking.remove();
+    
+    console.error('豆包API调用失败:', err);
+    addChatMessage('ai', `⚠️ 豆包API调用失败：${err.message}\n\n已自动切换到本地知识库回答：\n\n` + analyzeQuestion(question));
+  }
+}
+
+// 构建系统提示词
+function buildSystemPrompt() {
+  let prompt = `你是脉塔智能电机选型系统的智能助手，专业回答客户关于电机选型的问题。
+
+【产品库信息】
+脉塔智能共有47款产品，分为6大系列：
+1. RMD-X行星模组（16款）：X2-3, X2-7, X2-7-L, X4-10, X4-10-L, X4-36, X4-36-L, X6-50-L, X6-60, X8-32, X8-120, X8-150-03, X10-200, X12-320, X12-320-L, X15-450
+2. RH谐波模组（5款）：RH-14, RH-17, RH-20, RH-25, RH-32
+3. HM轻量谐波（4款）：HM-40, HM-50, HM-60, HM-70
+4. CEM摆线模组（3款）：CEM-15, CEM-25, CEM-45
+5. H中空直驱（6款）：H-30-08, H-35-10, H-40-15, H-50-15, H-70-15, H-90-15
+6. FL/FLO无框电机（13款）
+
+【回答规则】
+1. 优先根据产品库信息回答，参数要准确
+2. 选型建议要考虑：额定扭矩、峰值扭矩、功率、转速、电压、尺寸、重量
+3. 行星模组适合重载、长寿命；谐波模组适合高精度、轻量化
+4. 最大不足量≤5Nm算基本满足，优先推荐偏差小的型号，避免性能过剩
+5. 回答要简洁专业，使用markdown格式，重要参数用表格展示
+6. 如果问题超出产品库范围，如实告知并建议联系销售
+
+【部分产品参数参考】
+`;
+  
+  // 添加前10款产品的详细参数作为参考
+  const sampleProducts = PRODUCTS.slice(0, 15);
+  sampleProducts.forEach(p => {
+    prompt += `- ${p.short}（${p.type}）：额定${p.rated}Nm/峰值${p.peak}Nm，${p.power}W，${p.speed}rpm，${p.voltage}V，${p.length || '-'}×${p.od}mm，${p.weight || '-'}kg\n`;
+  });
+  
+  return prompt;
+}
+
+// API设置相关函数
+function toggleAISettings() {
+  const settings = document.getElementById('ai-settings');
+  settings.style.display = settings.style.display === 'none' ? 'block' : 'none';
+  
+  // 加载已保存的设置
+  if (settings.style.display === 'block') {
+    const apiKey = localStorage.getItem('doubao_api_key') || '';
+    const endpoint = localStorage.getItem('doubao_endpoint') || '';
+    document.getElementById('ai-api-key').value = apiKey;
+    document.getElementById('ai-endpoint').value = endpoint;
+    updateAPIStatus();
+  }
+}
+
+function saveAISettings() {
+  const apiKey = document.getElementById('ai-api-key').value.trim();
+  const endpoint = document.getElementById('ai-endpoint').value.trim();
+  
+  if (apiKey) localStorage.setItem('doubao_api_key', apiKey);
+  if (endpoint) localStorage.setItem('doubao_endpoint', endpoint);
+  
+  showToast('API设置已保存', 'success');
+  updateAPIStatus();
+}
+
+function clearAISettings() {
+  localStorage.removeItem('doubao_api_key');
+  localStorage.removeItem('doubao_endpoint');
+  document.getElementById('ai-api-key').value = '';
+  document.getElementById('ai-endpoint').value = '';
+  showToast('API设置已清除', 'info');
+  updateAPIStatus();
+}
+
+function updateAPIStatus() {
+  const apiKey = localStorage.getItem('doubao_api_key');
+  const endpoint = localStorage.getItem('doubao_endpoint');
+  const statusEl = document.getElementById('ai-api-status');
+  
+  if (apiKey && endpoint) {
+    statusEl.textContent = '✓ 已配置豆包API';
+    statusEl.style.color = '#4CAF50';
+  } else {
+    statusEl.textContent = '未配置（使用本地知识库）';
+    statusEl.style.color = '#FF9800';
+  }
+}
+
+// 清空对话
+function clearAI() {
+  aiChatHistory = [];
+  document.getElementById('ai-chat').innerHTML = '';
+  document.getElementById('ai-result-card').style.display = 'none';
+}
+
+// markdown格式转换
+function formatMarkdown(text) {
+  // 1. 处理表格
+  const tableRegex = /(?:^\|.+\|$\n?)+(?:^\|[-: |]+\|$\n?)(?:^\|.+\|$\n?)+/gm;
+  text = text.replace(tableRegex, (table) => {
+    const rows = table.trim().split('\n').filter(r => r.trim());
+    if (rows.length < 2) return table;
+    
+    const separatorIdx = rows.findIndex(r => /^\|[-: |]+\|$/.test(r.trim()));
+    if (separatorIdx === -1) return table;
+    
+    const headerCells = rows[0].split('|').filter(c => c.trim()).map(c => c.trim());
+    const bodyRows = rows.slice(separatorIdx + 1);
+    
+    let html = '<table>';
+    html += '<thead><tr>' + headerCells.map(c => `<th>${c}</th>`).join('') + '</tr></thead>';
+    html += '<tbody>';
+    bodyRows.forEach(row => {
+      const cells = row.split('|').filter(c => c.trim()).map(c => c.trim());
+      html += '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  });
+  
+  // 2. 处理加粗
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
+  // 3. 处理列表项（在非表格行中）
+  text = text.replace(/^- /gm, '• ');
+  
+  // 4. 处理换行（表格内不转换）
+  text = text.replace(/\n/g, (match, offset, str) => {
+    // 检查是否在表格内
+    const before = str.substring(0, offset);
+    const tableStart = before.lastIndexOf('<table>');
+    const tableEnd = before.lastIndexOf('</table>');
+    if (tableStart > tableEnd) return match; // 在表格内，保留换行
+    return '<br>';
+  });
+  
+  return text;
+}
+
+// 添加聊天消息
+function addChatMessage(role, content) {
+  const chatDiv = document.getElementById('ai-chat');
+  const resultCard = document.getElementById('ai-result-card');
+  
+  resultCard.style.display = 'block';
+  
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'chat-message chat-' + role;
+  
+  const avatar = role === 'user' ? '👤' : '🤖';
+  const name = role === 'user' ? '您' : '智能助手';
+  
+  // 处理markdown格式的回答
+  let formattedContent = formatMarkdown(content);
+  
+  messageDiv.innerHTML = `
+    <div class="chat-avatar">${avatar}</div>
+    <div class="chat-content">
+      <div class="chat-name">${name}</div>
+      <div class="chat-text">${formattedContent}</div>
+    </div>
+  `;
+  
+  chatDiv.appendChild(messageDiv);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+  
+  aiChatHistory.push({ role, content });
+}
+
+// 分析问题
+function analyzeQuestion(question) {
+  const q = question.toLowerCase();
+  
+  // 1. 尝试匹配产品型号查询
+  const productAnswer = matchProductQuery(question);
+  if (productAnswer) return productAnswer;
+  
+  // 2. 尝试匹配选型建议（扭矩需求）
+  const selectionAnswer = matchSelectionQuery(question);
+  if (selectionAnswer) return selectionAnswer;
+  
+  // 3. 尝试匹配常见问题
+  for (const faq of FAQ_KNOWLEDGE) {
+    const matched = faq.keywords.some(kw => q.includes(kw.toLowerCase()));
+    if (matched) return faq.answer;
+  }
+  
+  // 4. 尝试按类型筛选产品
+  const typeAnswer = matchTypeQuery(question);
+  if (typeAnswer) return typeAnswer;
+  
+  // 5. 默认回答
+  return `抱歉，我没有完全理解您的问题。
+
+您可以尝试以下方式提问：
+- **产品参数查询**：例如"X8-120的参数是什么"
+- **选型建议**：例如"我需要峰值50Nm，推荐什么型号"
+- **技术对比**：例如"行星和谐波有什么区别"
+- **常见问题**：例如"支持什么通信协议"、"抱闸可以定制吗"
+
+或者使用上方的"手动选型"、"文档导入选型"功能获取精确推荐。`;
+}
+
+// 匹配产品型号查询
+function matchProductQuery(question) {
+  const q = question.toLowerCase();
+  
+  // 遍历所有产品，匹配型号
+  for (const product of PRODUCTS) {
+    const shortLower = product.short.toLowerCase();
+    const fullLower = product.full.toLowerCase();
+    
+    if (q.includes(shortLower) || q.includes(fullLower)) {
+      return formatProductAnswer(product);
+    }
+  }
+  
+  return null;
+}
+
+// 格式化产品参数回答
+function formatProductAnswer(p) {
+  const size = (p.length || '-') + '×' + (p.od || '-') + ' mm';
+  const weight = p.weight ? p.weight + ' kg' : '-';
+  
+  return `**${p.full}** 参数信息：
+
+| 参数 | 值 |
+|------|-----|
+| 型号 | ${p.short} |
+| 模组类型 | ${p.type} |
+| 额定扭矩 | ${p.rated} Nm |
+| 峰值扭矩 | ${p.peak} Nm |
+| 额定功率 | ${p.power} W |
+| 额定转速 | ${p.speed} rpm |
+| 额定电压 | ${p.voltage} V |
+| 尺寸（总长×外径） | ${size} |
+| 重量 | ${weight} |
+| 减速比 | ${p.ratio} |
+| 通信协议 | ${p.comm} |
+| 抱闸 | ${p.brake} |
+
+**选型提示**：
+- 该型号${p.type}，额定${p.rated}Nm/峰值${p.peak}Nm
+- 适合需要${Math.round(p.rated * 0.8)}-${p.rated}Nm额定扭矩的应用
+- 如需对比其他型号，请使用"手动选型"功能输入您的需求参数`;
+}
+
+// 匹配选型建议查询
+function matchSelectionQuery(question) {
+  const q = question.toLowerCase();
+  
+  // 提取扭矩数值
+  let rated = null, peak = null;
+  
+  // 匹配"额定XX"、"峰值XX"
+  const ratedMatch = q.match(/额定[^0-9]*(\d+\.?\d*)/);
+  const peakMatch = q.match(/峰值[^0-9]*(\d+\.?\d*)/);
+  
+  if (ratedMatch) rated = parseFloat(ratedMatch[1]);
+  if (peakMatch) peak = parseFloat(peakMatch[1]);
+  
+  // 如果没有明确额定/峰值，尝试提取单个扭矩值
+  if (!rated && !peak) {
+    const torqueMatch = q.match(/(\d+\.?\d*)\s*(nm|牛米|扭矩)/);
+    if (torqueMatch) {
+      // 假设是峰值扭矩
+      peak = parseFloat(torqueMatch[1]);
+    }
+  }
+  
+  if (!rated && !peak) return null;
+  
+  // 确定模组类型筛选
+  let typeFilter = null;
+  if (q.includes('行星')) typeFilter = '行星模组';
+  else if (q.includes('谐波')) typeFilter = '谐波模组';
+  else if (q.includes('轻量谐波')) typeFilter = '轻量谐波';
+  else if (q.includes('摆线')) typeFilter = '摆线模组';
+  else if (q.includes('直驱')) typeFilter = '中空直驱';
+  else if (q.includes('无框')) typeFilter = '无框电机';
+  
+  // 使用选型算法
+  const filters = { types: typeFilter ? [typeFilter] : MODULE_TYPES.slice(), comm: 'all', voltage: 'all' };
+  const results = selectProducts(rated || 0, peak || 0, 5, filters);
+  
+  if (results.length === 0) {
+    return `抱歉，没有找到匹配的产品。
+
+您的需求：额定${rated || '-'}Nm，峰值${peak || '-'}Nm${typeFilter ? '，' + typeFilter : ''}
+
+建议：
+1. 放宽扭矩要求
+2. 尝试其他模组类型
+3. 使用"手动选型"功能调整容差参数`;
+  }
+  
+  // 取前3个推荐
+  const top3 = results.slice(0, 3);
+  
+  const typeStr = typeFilter ? '，' + typeFilter : '';
+  let answer = `根据您的需求（额定${rated || '不限'}Nm，峰值${peak || '不限'}Nm${typeStr}），为您推荐以下型号：\n\n`;
+  
+  top3.forEach((p, idx) => {
+    const meetsText = p.meetsAll ? '✓ 满足' : '⚠ 基本满足（偏差≤5Nm）';
+    answer += `${idx + 1}. **${p.short}**（${p.type}）\n`;
+    answer += `   - 额定：${p.rated}Nm，峰值：${p.peak}Nm\n`;
+    answer += `   - 功率：${p.power}W，转速：${p.speed}rpm\n`;
+    answer += `   - 尺寸：${p.length || '-'}×${p.od || '-'}mm，重量：${p.weight || '-'}kg\n`;
+    answer += `   - 状态：${meetsText}\n\n`;
+  });
+  
+  answer += `**推荐理由**：\n`;
+  answer += `- 首选 ${top3[0].short}，扭矩偏差最小，性价比最高\n`;
+  answer += `- 如需更高性能余量，可考虑 ${top3[1]?.short || top3[0].short}\n`;
+  answer += `- 如需更小尺寸，可对比备选型号\n\n`;
+  answer += `建议使用"手动选型"功能查看完整对比和偏差详情。`;
+  
+  return answer;
+}
+
+// 匹配类型查询
+function matchTypeQuery(question) {
+  const q = question.toLowerCase();
+  
+  let targetType = null;
+  if (q.includes('行星')) targetType = '行星模组';
+  else if (q.includes('谐波')) targetType = '谐波模组';
+  else if (q.includes('轻量谐波')) targetType = '轻量谐波';
+  else if (q.includes('摆线')) targetType = '摆线模组';
+  else if (q.includes('直驱')) targetType = '中空直驱';
+  else if (q.includes('无框')) targetType = '无框电机';
+  
+  if (!targetType) return null;
+  
+  const products = PRODUCTS.filter(p => p.type === targetType);
+  
+  if (products.length === 0) return null;
+  
+  let answer = `**${targetType}** 系列产品（共${products.length}款）：\n\n`;
+  
+  products.forEach(p => {
+    answer += `• **${p.short}**：额定${p.rated}Nm/峰值${p.peak}Nm，${p.power}W，${p.length || '-'}×${p.od || '-'}mm\n`;
+  });
+  
+  answer += `\n如需详细参数，请直接询问具体型号，例如"${products[0].short}的参数是什么"。`;
+  
+  return answer;
+}
+
+// 回车发送
+document.addEventListener('DOMContentLoaded', () => {
+  const aiInput = document.getElementById('ai-input');
+  if (aiInput) {
+    aiInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        askAI();
+      }
+    });
+  }
+});
+
+// ==================== 机器人系统方案推荐 ====================
+
+// 机器人类型配置模板
+const ROBOT_TEMPLATES = {
+  humanoid: {
+    name: '人形机器人',
+    icon: '🤖',
+    description: '双足人形机器人，适用于服务、工业、科研等场景',
+    defaultParams: { height: 160, weight: 50, payload: 5, speed: 1.0, backlash: 5, accuracy: 0.1 },
+    paramLabels: {
+      height: '身高 (cm)',
+      weight: '整机重量 (kg)',
+      payload: '单臂负载 (kg)',
+      speed: '行走速度 (m/s)',
+      backlash: '背隙要求 (弧分)',
+      accuracy: '重复定位精度 (度)'
+    }
+  },
+  arm: {
+    name: '机械臂',
+    icon: '🦾',
+    description: '协作/工业机械臂，适用于装配、搬运、焊接等场景',
+    defaultParams: { payload: 5, reach: 800, dof: 6, speed: 1.0, backlash: 1, accuracy: 0.05 },
+    paramLabels: {
+      payload: '末端负载 (kg)',
+      reach: '臂展 (mm)',
+      dof: '自由度 (轴)',
+      speed: '末端速度 (m/s)',
+      backlash: '背隙要求 (弧分)',
+      accuracy: '重复定位精度 (度)'
+    }
+  },
+  quadruped: {
+    name: '四足机器狗',
+    icon: '🐕',
+    description: '四足移动机器人，适用于巡检、勘探、救援等场景',
+    defaultParams: { weight: 15, payload: 5, speed: 1.5, legLength: 30, backlash: 10, accuracy: 0.2 },
+    paramLabels: {
+      weight: '整机重量 (kg)',
+      payload: '背负负载 (kg)',
+      speed: '奔跑速度 (m/s)',
+      legLength: '腿长 (cm)',
+      backlash: '背隙要求 (弧分)',
+      accuracy: '重复定位精度 (度)'
+    }
+  },
+  gripper: {
+    name: '夹爪/灵巧手',
+    icon: '✋',
+    description: '末端执行器，适用于抓取、操作、精密装配等场景',
+    defaultParams: { gripForce: 20, objectWeight: 1, dof: 2, type: 'parallel', backlash: 3, accuracy: 0.1 },
+    paramLabels: {
+      gripForce: '夹持力 (N)',
+      objectWeight: '抓取重量 (kg)',
+      dof: '自由度',
+      type: '类型',
+      backlash: '背隙要求 (弧分)',
+      accuracy: '重复定位精度 (度)'
+    }
+  }
+};
+
+// 为人形机器人生成关节配置
+function generateHumanoidJoints(params) {
+  const { height, weight, payload } = params;
+  const h = height / 100; // 转换为米
+  
+  // 基于身高估算各部位长度和重量（人体比例）
+  const armLength = h * 0.45;      // 臂长
+  const forearmLength = h * 0.25;  // 前臂长
+  const upperArmLength = h * 0.2;  // 上臂长
+  const legLength = h * 0.5;       // 腿长
+  const thighLength = h * 0.28;    // 大腿长
+  const shinLength = h * 0.22;     // 小腿长
+  
+  const upperBodyWeight = weight * 0.65;  // 上半身重量
+  const armWeight = weight * 0.05;        // 单臂重量
+  const legWeight = weight * 0.15;        // 单腿重量
+  const headWeight = weight * 0.06;       // 头部重量
+  
+  // 动态系数（运动时峰值扭矩/静态扭矩）
+  const dynamicFactor = 2.5;
+  
+  const joints = [];
+  
+  // 头部关节（2DOF）
+  joints.push({
+    id: 'neck_pitch', name: '颈部俯仰', part: '头部', dof: 1,
+    load: headWeight, arm: 0.1,
+    rated: Math.round(headWeight * 9.8 * 0.1 / dynamicFactor * 10) / 10,
+    peak: Math.round(headWeight * 9.8 * 0.1 * 10) / 10,
+    speed: 60, type: '轻载', priority: '低'
+  });
+  joints.push({
+    id: 'neck_yaw', name: '颈部旋转', part: '头部', dof: 1,
+    load: headWeight, arm: 0.05,
+    rated: Math.round(headWeight * 9.8 * 0.05 / dynamicFactor * 10) / 10,
+    peak: Math.round(headWeight * 9.8 * 0.05 * 10) / 10,
+    speed: 90, type: '轻载', priority: '低'
+  });
+  
+  // 左臂关节（7DOF）
+  // 肩关节3DOF
+  const shoulderTorque = (payload + armWeight * 0.5) * 9.8 * armLength;
+  joints.push({
+    id: 'l_shoulder_pitch', name: '左肩俯仰', part: '左臂', dof: 1,
+    load: payload + armWeight, arm: armLength,
+    rated: Math.round(shoulderTorque / dynamicFactor * 10) / 10,
+    peak: Math.round(shoulderTorque * 10) / 10,
+    speed: 90, type: '中载', priority: '高'
+  });
+  joints.push({
+    id: 'l_shoulder_roll', name: '左肩侧摆', part: '左臂', dof: 1,
+    load: payload + armWeight, arm: armLength * 0.8,
+    rated: Math.round(shoulderTorque * 0.8 / dynamicFactor * 10) / 10,
+    peak: Math.round(shoulderTorque * 0.8 * 10) / 10,
+    speed: 90, type: '中载', priority: '高'
+  });
+  joints.push({
+    id: 'l_shoulder_yaw', name: '左肩旋转', part: '左臂', dof: 1,
+    load: payload + armWeight, arm: forearmLength,
+    rated: Math.round((payload + armWeight * 0.3) * 9.8 * forearmLength / dynamicFactor * 10) / 10,
+    peak: Math.round((payload + armWeight * 0.3) * 9.8 * forearmLength * 10) / 10,
+    speed: 120, type: '中载', priority: '中'
+  });
+  // 肘关节1DOF
+  const elbowTorque = (payload + armWeight * 0.3) * 9.8 * forearmLength;
+  joints.push({
+    id: 'l_elbow', name: '左肘屈伸', part: '左臂', dof: 1,
+    load: payload + armWeight * 0.3, arm: forearmLength,
+    rated: Math.round(elbowTorque / dynamicFactor * 10) / 10,
+    peak: Math.round(elbowTorque * 10) / 10,
+    speed: 120, type: '中载', priority: '高'
+  });
+  // 腕关节3DOF
+  const wristTorque = payload * 9.8 * 0.1;
+  joints.push({
+    id: 'l_wrist_pitch', name: '左腕俯仰', part: '左臂', dof: 1,
+    load: payload, arm: 0.1,
+    rated: Math.round(wristTorque / dynamicFactor * 10) / 10,
+    peak: Math.round(wristTorque * 10) / 10,
+    speed: 180, type: '轻载', priority: '中'
+  });
+  joints.push({
+    id: 'l_wrist_roll', name: '左腕旋转', part: '左臂', dof: 1,
+    load: payload, arm: 0.05,
+    rated: Math.round(wristTorque * 0.5 / dynamicFactor * 10) / 10,
+    peak: Math.round(wristTorque * 0.5 * 10) / 10,
+    speed: 180, type: '轻载', priority: '中'
+  });
+  joints.push({
+    id: 'l_wrist_yaw', name: '左腕偏摆', part: '左臂', dof: 1,
+    load: payload, arm: 0.05,
+    rated: Math.round(wristTorque * 0.5 / dynamicFactor * 10) / 10,
+    peak: Math.round(wristTorque * 0.5 * 10) / 10,
+    speed: 180, type: '轻载', priority: '低'
+  });
+  
+  // 右臂（与左臂对称）
+  joints.push(...joints.filter(j => j.id.startsWith('l_') && j.part === '左臂').map(j => ({
+    ...j,
+    id: j.id.replace('l_', 'r_'),
+    name: j.name.replace('左', '右'),
+    part: '右臂'
+  })));
+  
+  // 腰部关节（2DOF）
+  const waistTorque = upperBodyWeight * 9.8 * 0.15;
+  joints.push({
+    id: 'waist_pitch', name: '腰部俯仰', part: '躯干', dof: 1,
+    load: upperBodyWeight, arm: 0.15,
+    rated: Math.round(waistTorque / dynamicFactor * 10) / 10,
+    peak: Math.round(waistTorque * 10) / 10,
+    speed: 60, type: '中载', priority: '高'
+  });
+  joints.push({
+    id: 'waist_yaw', name: '腰部旋转', part: '躯干', dof: 1,
+    load: upperBodyWeight, arm: 0.1,
+    rated: Math.round(waistTorque * 0.7 / dynamicFactor * 10) / 10,
+    peak: Math.round(waistTorque * 0.7 * 10) / 10,
+    speed: 60, type: '中载', priority: '中'
+  });
+  
+  // 左腿关节（6DOF）
+  // 髋关节3DOF
+  const hipTorque = (upperBodyWeight + legWeight) * 9.8 * thighLength;
+  joints.push({
+    id: 'l_hip_pitch', name: '左髋俯仰', part: '左腿', dof: 1,
+    load: upperBodyWeight + legWeight, arm: thighLength,
+    rated: Math.round(hipTorque / dynamicFactor * 10) / 10,
+    peak: Math.round(hipTorque * 10) / 10,
+    speed: 90, type: '重载', priority: '高'
+  });
+  joints.push({
+    id: 'l_hip_roll', name: '左髋侧摆', part: '左腿', dof: 1,
+    load: upperBodyWeight + legWeight, arm: thighLength * 0.8,
+    rated: Math.round(hipTorque * 0.8 / dynamicFactor * 10) / 10,
+    peak: Math.round(hipTorque * 0.8 * 10) / 10,
+    speed: 60, type: '重载', priority: '高'
+  });
+  joints.push({
+    id: 'l_hip_yaw', name: '左髋旋转', part: '左腿', dof: 1,
+    load: upperBodyWeight + legWeight, arm: shinLength,
+    rated: Math.round((upperBodyWeight + legWeight * 0.5) * 9.8 * shinLength / dynamicFactor * 10) / 10,
+    peak: Math.round((upperBodyWeight + legWeight * 0.5) * 9.8 * shinLength * 10) / 10,
+    speed: 60, type: '重载', priority: '中'
+  });
+  // 膝关节1DOF
+  const kneeTorque = (upperBodyWeight + legWeight * 0.5) * 9.8 * shinLength;
+  joints.push({
+    id: 'l_knee', name: '左膝屈伸', part: '左腿', dof: 1,
+    load: upperBodyWeight + legWeight * 0.5, arm: shinLength,
+    rated: Math.round(kneeTorque / dynamicFactor * 10) / 10,
+    peak: Math.round(kneeTorque * 10) / 10,
+    speed: 90, type: '重载', priority: '高'
+  });
+  // 踝关节2DOF
+  const ankleTorque = weight * 9.8 * 0.08;
+  joints.push({
+    id: 'l_ankle_pitch', name: '左踝俯仰', part: '左腿', dof: 1,
+    load: weight, arm: 0.08,
+    rated: Math.round(ankleTorque / dynamicFactor * 10) / 10,
+    peak: Math.round(ankleTorque * 10) / 10,
+    speed: 60, type: '中载', priority: '高'
+  });
+  joints.push({
+    id: 'l_ankle_roll', name: '左踝侧摆', part: '左腿', dof: 1,
+    load: weight, arm: 0.06,
+    rated: Math.round(ankleTorque * 0.7 / dynamicFactor * 10) / 10,
+    peak: Math.round(ankleTorque * 0.7 * 10) / 10,
+    speed: 30, type: '中载', priority: '高'
+  });
+  
+  // 右腿（与左腿对称）
+  joints.push(...joints.filter(j => j.id.startsWith('l_') && j.part === '左腿').map(j => ({
+    ...j,
+    id: j.id.replace('l_', 'r_'),
+    name: j.name.replace('左', '右'),
+    part: '右腿'
+  })));
+  
+  return joints;
+}
+
+// 为机械臂生成关节配置
+function generateArmJoints(params) {
+  const { payload, reach, dof } = params;
+  const reachM = reach / 1000; // 转换为米
+  
+  // 估算各段长度
+  const upperArmLen = reachM * 0.45;
+  const forearmLen = reachM * 0.4;
+  const wristLen = reachM * 0.15;
+  
+  // 估算各关节重量
+  const baseWeight = 8;
+  const upperArmWeight = 4;
+  const forearmWeight = 2.5;
+  const wristWeight = 1;
+  
+  const dynamicFactor = 2.0;
+  const joints = [];
+  
+  // J1 - 底座旋转
+  const j1Torque = (payload + forearmWeight + wristWeight) * 9.8 * reachM * 0.8;
+  joints.push({
+    id: 'j1', name: 'J1 底座旋转', part: '底座', dof: 1,
+    load: payload + forearmWeight + wristWeight, arm: reachM * 0.8,
+    rated: Math.round(j1Torque / dynamicFactor * 10) / 10,
+    peak: Math.round(j1Torque * 10) / 10,
+    speed: 120, type: '重载', priority: '高'
+  });
+  
+  // J2 - 大臂俯仰
+  const j2Torque = (payload + forearmWeight + wristWeight) * 9.8 * (upperArmLen + forearmLen);
+  joints.push({
+    id: 'j2', name: 'J2 大臂俯仰', part: '大臂', dof: 1,
+    load: payload + forearmWeight + wristWeight, arm: upperArmLen + forearmLen,
+    rated: Math.round(j2Torque / dynamicFactor * 10) / 10,
+    peak: Math.round(j2Torque * 10) / 10,
+    speed: 90, type: '重载', priority: '高'
+  });
+  
+  // J3 - 小臂俯仰
+  const j3Torque = (payload + wristWeight) * 9.8 * forearmLen;
+  joints.push({
+    id: 'j3', name: 'J3 小臂俯仰', part: '小臂', dof: 1,
+    load: payload + wristWeight, arm: forearmLen,
+    rated: Math.round(j3Torque / dynamicFactor * 10) / 10,
+    peak: Math.round(j3Torque * 10) / 10,
+    speed: 120, type: '中载', priority: '高'
+  });
+  
+  // J4 - 腕部旋转
+  const j4Torque = payload * 9.8 * wristLen * 0.5;
+  joints.push({
+    id: 'j4', name: 'J4 腕部旋转', part: '腕部', dof: 1,
+    load: payload, arm: wristLen * 0.5,
+    rated: Math.round(j4Torque / dynamicFactor * 10) / 10,
+    peak: Math.round(j4Torque * 10) / 10,
+    speed: 180, type: '轻载', priority: '中'
+  });
+  
+  // J5 - 腕部俯仰
+  const j5Torque = payload * 9.8 * wristLen;
+  joints.push({
+    id: 'j5', name: 'J5 腕部俯仰', part: '腕部', dof: 1,
+    load: payload, arm: wristLen,
+    rated: Math.round(j5Torque / dynamicFactor * 10) / 10,
+    peak: Math.round(j5Torque * 10) / 10,
+    speed: 180, type: '轻载', priority: '中'
+  });
+  
+  // J6 - 末端旋转
+  const j6Torque = payload * 9.8 * wristLen * 0.3;
+  joints.push({
+    id: 'j6', name: 'J6 末端旋转', part: '末端', dof: 1,
+    load: payload, arm: wristLen * 0.3,
+    rated: Math.round(j6Torque / dynamicFactor * 10) / 10,
+    peak: Math.round(j6Torque * 10) / 10,
+    speed: 240, type: '轻载', priority: '低'
+  });
+  
+  // 七轴机械臂增加J7
+  if (dof >= 7) {
+    joints.push({
+      id: 'j7', name: 'J7 冗余轴', part: '小臂', dof: 1,
+      load: payload + wristWeight, arm: forearmLen * 0.5,
+      rated: Math.round(j3Torque * 0.6 / dynamicFactor * 10) / 10,
+      peak: Math.round(j3Torque * 0.6 * 10) / 10,
+      speed: 120, type: '中载', priority: '中'
+    });
+  }
+  
+  return joints;
+}
+
+// 为四足机器狗生成关节配置
+function generateQuadrupedJoints(params) {
+  const { weight, payload, legLength } = params;
+  const legLenM = legLength / 100; // 转换为米
+  
+  // 单腿承载重量（站立时约1/4，运动时可能达到1/2）
+  const legLoad = (weight + payload) / 2;
+  const thighLen = legLenM * 0.5;
+  const shinLen = legLenM * 0.5;
+  
+  const dynamicFactor = 2.5;
+  const joints = [];
+  
+  // 每条腿3个关节：髋侧摆、髋俯仰、膝屈伸
+  const legSides = ['左前', '右前', '左后', '右后'];
+  const legPrefixes = ['fl', 'fr', 'bl', 'br'];
+  
+  legSides.forEach((side, idx) => {
+    const prefix = legPrefixes[idx];
+    
+    // 髋侧摆（外展/内收）
+    const hipRollTorque = legLoad * 9.8 * thighLen * 0.5;
+    joints.push({
+      id: `${prefix}_hip_roll`, name: `${side}髋侧摆`, part: `${side}腿`, dof: 1,
+      load: legLoad, arm: thighLen * 0.5,
+      rated: Math.round(hipRollTorque / dynamicFactor * 10) / 10,
+      peak: Math.round(hipRollTorque * 10) / 10,
+      speed: 90, type: '中载', priority: '高'
+    });
+    
+    // 髋俯仰（前后摆动）
+    const hipPitchTorque = legLoad * 9.8 * (thighLen + shinLen);
+    joints.push({
+      id: `${prefix}_hip_pitch`, name: `${side}髋俯仰`, part: `${side}腿`, dof: 1,
+      load: legLoad, arm: thighLen + shinLen,
+      rated: Math.round(hipPitchTorque / dynamicFactor * 10) / 10,
+      peak: Math.round(hipPitchTorque * 10) / 10,
+      speed: 120, type: '重载', priority: '高'
+    });
+    
+    // 膝屈伸
+    const kneeTorque = legLoad * 9.8 * shinLen;
+    joints.push({
+      id: `${prefix}_knee`, name: `${side}膝屈伸`, part: `${side}腿`, dof: 1,
+      load: legLoad, arm: shinLen,
+      rated: Math.round(kneeTorque / dynamicFactor * 10) / 10,
+      peak: Math.round(kneeTorque * 10) / 10,
+      speed: 120, type: '重载', priority: '高'
+    });
+  });
+  
+  return joints;
+}
+
+// 为夹爪/灵巧手生成关节配置
+function generateGripperJoints(params) {
+  const { gripForce, objectWeight, dof, type } = params;
+  
+  const joints = [];
+  
+  if (type === 'parallel' || dof <= 2) {
+    // 平行夹爪（2指）
+    const fingerLen = 0.08;
+    const gripTorque = gripForce * fingerLen;
+    
+    joints.push({
+      id: 'grip_left', name: '左指驱动', part: '夹爪', dof: 1,
+      load: objectWeight / 2, arm: fingerLen,
+      rated: Math.round(gripTorque * 0.5 * 10) / 10,
+      peak: Math.round(gripTorque * 10) / 10,
+      speed: 60, type: '轻载', priority: '高'
+    });
+    joints.push({
+      id: 'grip_right', name: '右指驱动', part: '夹爪', dof: 1,
+      load: objectWeight / 2, arm: fingerLen,
+      rated: Math.round(gripTorque * 0.5 * 10) / 10,
+      peak: Math.round(gripTorque * 10) / 10,
+      speed: 60, type: '轻载', priority: '高'
+    });
+  } else {
+    // 灵巧手（多自由度）
+    const fingers = Math.min(dof, 5);
+    const jointsPerFinger = Math.ceil(dof / fingers);
+    const fingerLen = 0.08;
+    
+    for (let f = 1; f <= fingers; f++) {
+      for (let j = 1; j <= jointsPerFinger; j++) {
+        const jointName = j === 1 ? '指根' : (j === 2 ? '指中' : '指尖');
+        const torque = gripForce * fingerLen * (j === 1 ? 1 : j === 2 ? 0.6 : 0.3);
+        joints.push({
+          id: `finger${f}_joint${j}`, name: `指${f}${jointName}`, part: '灵巧手', dof: 1,
+          load: objectWeight / fingers, arm: fingerLen * (1 - (j - 1) * 0.3),
+          rated: Math.round(torque * 0.4 * 100) / 100,
+          peak: Math.round(torque * 100) / 100,
+          speed: 90, type: '轻载', priority: j === 1 ? '高' : '中'
+        });
+      }
+    }
+  }
+  
+  return joints;
+}
+
+// 为单个关节推荐电机
+function recommendMotorForJoint(joint, requirements = {}) {
+  const { rated, peak, type } = joint;
+  const { maxBacklash, maxRepeatability } = requirements;
+  
+  // 根据关节类型选择优先的模组类型
+  let preferredTypes = [];
+  if (type === '重载') {
+    preferredTypes = ['行星模组', '谐波模组', '摆线模组'];
+  } else if (type === '中载') {
+    preferredTypes = ['谐波模组', '行星模组', '轻量谐波', '摆线模组'];
+  } else {
+    preferredTypes = ['轻量谐波', '谐波模组', '行星模组', '中空直驱'];
+  }
+  
+  // 在所有产品中筛选
+  let candidates = PRODUCTS.filter(p => {
+    const ratedOk = !rated || p.rated >= rated - 5;
+    const peakOk = !peak || p.peak >= peak - 5;
+    // 背隙筛选（null表示无要求或不适用）
+    const backlashOk = !maxBacklash || p.backlash === null || p.backlash <= maxBacklash;
+    // 重复定位精度筛选
+    const accuracyOk = !maxRepeatability || p.repeatability === null || p.repeatability <= maxRepeatability;
+    return ratedOk && peakOk && backlashOk && accuracyOk;
+  });
+  
+  // 如果筛选后没有候选，放宽背隙和精度要求
+  if (candidates.length === 0) {
+    candidates = PRODUCTS.filter(p => {
+      const ratedOk = !rated || p.rated >= rated - 5;
+      const peakOk = !peak || p.peak >= peak - 5;
+      return ratedOk && peakOk;
+    });
+  }
+  
+  // 按偏好类型排序
+  candidates.sort((a, b) => {
+    const aTypeIdx = preferredTypes.indexOf(a.type);
+    const bTypeIdx = preferredTypes.indexOf(b.type);
+    if (aTypeIdx !== bTypeIdx) {
+      if (aTypeIdx === -1) return 1;
+      if (bTypeIdx === -1) return -1;
+      return aTypeIdx - bTypeIdx;
+    }
+    const aDiff = Math.abs(a.rated - rated) + Math.abs(a.peak - peak);
+    const bDiff = Math.abs(b.rated - rated) + Math.abs(b.peak - peak);
+    return aDiff - bDiff;
+  });
+  
+  const top3 = candidates.slice(0, 3);
+  
+  // 计算首选电机的满足状态
+  let satisfaction = '暂无匹配';
+  if (top3.length > 0) {
+    const primary = top3[0];
+    const ratedShort = rated ? Math.max(0, rated - primary.rated) : 0;
+    const peakShort = peak ? Math.max(0, peak - primary.peak) : 0;
+    const maxShort = Math.max(ratedShort, peakShort);
+    const overRatio = rated ? primary.rated / rated : 1;
+    
+    if (maxShort === 0 && overRatio <= 1.2) {
+      satisfaction = '精确满足';
+    } else if (maxShort <= 5) {
+      satisfaction = '满足';
+    } else if (overRatio > 2) {
+      satisfaction = '满足但明显过配';
+    } else {
+      satisfaction = '满足';
+    }
+  }
+  
+  return {
+    candidates: top3,
+    primary: top3[0] || null,
+    satisfaction: satisfaction
+  };
+}
+
+// 生成完整的机器人方案
+function generateRobotSolution(robotType, params) {
+  let joints = [];
+  
+  switch (robotType) {
+    case 'humanoid':
+      joints = generateHumanoidJoints(params);
+      break;
+    case 'arm':
+      joints = generateArmJoints(params);
+      break;
+    case 'quadruped':
+      joints = generateQuadrupedJoints(params);
+      break;
+    case 'gripper':
+      joints = generateGripperJoints(params);
+      break;
+    default:
+      return null;
+  }
+  
+  // 提取精度和背隙要求
+  const requirements = {
+    maxBacklash: params.backlash || null,
+    maxRepeatability: params.accuracy || null
+  };
+  
+  // 为每个关节推荐电机
+  joints = joints.map(joint => {
+    const result = recommendMotorForJoint(joint, requirements);
+    return {
+      ...joint,
+      recommendations: result.candidates,
+      primary: result.primary,
+      satisfaction: result.satisfaction
+    };
+  });
+  
+  // 统计信息
+  const totalDof = joints.reduce((sum, j) => sum + j.dof, 0);
+  const totalMotors = joints.length;
+  const parts = [...new Set(joints.map(j => j.part))];
+  
+  // 计算总功率估算
+  const totalPower = joints.reduce((sum, j) => {
+    if (j.primary && j.primary.power) return sum + j.primary.power;
+    return sum + 50;
+  }, 0);
+  
+  // 统计满足状态
+  const satisfactionStats = {};
+  joints.forEach(j => {
+    const s = j.satisfaction || '未知';
+    if (!satisfactionStats[s]) satisfactionStats[s] = 0;
+    satisfactionStats[s]++;
+  });
+  
+  // 按部位分组
+  const jointsByPart = {};
+  parts.forEach(part => {
+    jointsByPart[part] = joints.filter(j => j.part === part);
+  });
+  
+  return {
+    robotType: robotType,
+    template: ROBOT_TEMPLATES[robotType],
+    params: params,
+    joints: joints,
+    jointsByPart: jointsByPart,
+    parts: parts,
+    totalDof: totalDof,
+    totalMotors: totalMotors,
+    totalPower: totalPower,
+    satisfactionStats: satisfactionStats,
+    generatedAt: new Date().toLocaleString('zh-CN')
+  };
+}
+
+// 渲染机器人方案结果
+function renderRobotSolution(solution) {
+  if (!solution) return '<p>方案生成失败</p>';
+  
+  const { template, params, joints, jointsByPart, parts, totalDof, totalMotors, totalPower, satisfactionStats } = solution;
+  
+  // 满足状态统计HTML
+  let satisfactionHtml = '';
+  if (satisfactionStats) {
+    satisfactionHtml = '<div class="satisfaction-stats"><strong>满足状态：</strong>';
+    Object.entries(satisfactionStats).forEach(([status, count]) => {
+      const cls = status === '精确满足' ? 'status-exact' : status === '满足' ? 'status-ok' : status === '满足但明显过配' ? 'status-over' : 'status-unknown';
+      satisfactionHtml += `<span class="satisfaction-tag ${cls}">${status}: ${count}个</span>`;
+    });
+    satisfactionHtml += '</div>';
+  }
+  
+  let html = `
+    <div class="solution-summary">
+      <h3>${template.icon} ${template.name}系统方案</h3>
+      <div class="solution-stats">
+        <div class="stat-item">
+          <span class="stat-value">${totalDof}</span>
+          <span class="stat-label">总自由度</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">${totalMotors}</span>
+          <span class="stat-label">关节数量</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">${parts.length}</span>
+          <span class="stat-label">部位分组</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">${Math.round(totalPower)}W</span>
+          <span class="stat-label">估算总功率</span>
+        </div>
+      </div>
+      <div class="solution-params">
+        <strong>输入参数：</strong>
+        ${Object.entries(params).map(([key, val]) => {
+          const label = template.paramLabels[key] || key;
+          return `<span class="param-tag">${label}: ${val}</span>`;
+        }).join('')}
+      </div>
+      ${satisfactionHtml}
+    </div>
+  `;
+  
+  // 按部位渲染关节表格
+  parts.forEach(part => {
+    const partJoints = jointsByPart[part];
+    html += `
+      <div class="solution-part">
+        <h4>${part}（${partJoints.length}个关节）</h4>
+        <div class="table-responsive">
+          <table class="solution-table">
+            <thead>
+              <tr>
+                <th>关节名称</th>
+                <th>负载(kg)</th>
+                <th>额定扭矩(Nm)</th>
+                <th>峰值扭矩(Nm)</th>
+                <th>推荐型号</th>
+                <th>额定扭矩</th>
+                <th>背隙(弧分)</th>
+                <th>重复精度(度)</th>
+                <th>满足状态</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    partJoints.forEach(joint => {
+      const recHtml = joint.recommendations.map((p, idx) => {
+        const cls = idx === 0 ? 'rec-primary' : 'rec-alt';
+        return `<div class="${cls}">${idx === 0 ? '★ ' : ''}${p.short} (${p.rated}/${p.peak}Nm)</div>`;
+      }).join('');
+      
+      const primary = joint.primary;
+      const satisfactionCls = joint.satisfaction === '精确满足' ? 'status-exact' : joint.satisfaction === '满足' ? 'status-ok' : joint.satisfaction === '满足但明显过配' ? 'status-over' : 'status-unknown';
+      
+      html += `
+        <tr>
+          <td><strong>${joint.name}</strong></td>
+          <td>${Math.round(joint.load * 10) / 10}</td>
+          <td>${joint.rated}</td>
+          <td>${joint.peak}</td>
+          <td>${recHtml || '<span class="no-rec">暂无匹配</span>'}</td>
+          <td>${primary ? primary.rated + ' Nm' : '-'}</td>
+          <td>${primary && primary.backlash !== null ? primary.backlash : '-'}</td>
+          <td>${primary && primary.repeatability !== null ? primary.repeatability : '-'}</td>
+          <td><span class="satisfaction-tag ${satisfactionCls}">${joint.satisfaction || '-'}</span></td>
+        </tr>
+      `;
+    });
+    
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  });
+  
+  // BOM清单
+  const motorCount = {};
+  joints.forEach(joint => {
+    if (joint.primary) {
+      const key = joint.primary.short;
+      if (!motorCount[key]) {
+        motorCount[key] = { product: joint.primary, count: 0 };
+      }
+      motorCount[key].count++;
+    }
+  });
+  
+  html += `
+    <div class="solution-bom">
+      <h4>推荐电机BOM清单（首选方案）</h4>
+      <div class="table-responsive">
+        <table class="bom-table">
+          <thead>
+            <tr>
+              <th>型号</th>
+              <th>类型</th>
+              <th>额定扭矩</th>
+              <th>峰值扭矩</th>
+              <th>功率</th>
+              <th>背隙</th>
+              <th>重复精度</th>
+              <th>数量</th>
+              <th>尺寸(总长×外径)</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+  
+  Object.values(motorCount).sort((a, b) => b.count - a.count).forEach(item => {
+    const p = item.product;
+    html += `
+      <tr>
+        <td><strong>${p.short}</strong></td>
+        <td>${p.type}</td>
+        <td>${p.rated} Nm</td>
+        <td>${p.peak} Nm</td>
+        <td>${p.power} W</td>
+        <td>${p.backlash !== null ? p.backlash + ' 弧分' : '-'}</td>
+        <td>${p.repeatability !== null ? p.repeatability + ' 度' : '-'}</td>
+        <td><strong>${item.count}</strong></td>
+        <td>${p.length || '-'}×${p.od || '-'} mm</td>
+      </tr>
+    `;
+  });
+  
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="solution-note">
+      <p><strong>说明：</strong>以上扭矩计算基于静态力学分析，实际选型需考虑动态冲击、安全系数（建议1.5-2倍）、安装空间、散热等因素。背隙和精度参数基于产品系列典型值，具体以官方手册为准。推荐电机仅供参考，最终方案请结合实际工况确认。</p>
+    </div>
+  `;
+  
+  return html;
+}
+
+// 更新方案推荐参数输入框
+function updateSolutionParams() {
+  const type = document.getElementById('solution-type').value;
+  const template = ROBOT_TEMPLATES[type];
+  const container = document.getElementById('solution-params');
+  
+  let html = '';
+  Object.entries(template.defaultParams).forEach(([key, val]) => {
+    const label = template.paramLabels[key] || key;
+    if (key === 'type') {
+      html += `
+        <div class="form-group">
+          <label>${label}</label>
+          <select id="sol-${key}">
+            <option value="parallel">平行夹爪</option>
+            <option value="dexterous">灵巧手</option>
+          </select>
+        </div>
+      `;
+    } else if (key === 'dof') {
+      html += `
+        <div class="form-group">
+          <label>${label}</label>
+          <select id="sol-${key}">
+            <option value="2">2自由度</option>
+            <option value="6">6自由度</option>
+            <option value="7">7自由度</option>
+            <option value="12">12自由度</option>
+            <option value="20">20自由度</option>
+          </select>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="form-group">
+          <label>${label}</label>
+          <input type="number" id="sol-${key}" value="${val}" step="any">
+        </div>
+      `;
+    }
+  });
+  
+  container.innerHTML = html;
+}
+
+// 生成机器人方案
+function generateSolution() {
+  try {
+    const type = document.getElementById('solution-type').value;
+    const template = ROBOT_TEMPLATES[type];
+    const params = {};
+    
+    Object.keys(template.defaultParams).forEach(key => {
+      const el = document.getElementById('sol-' + key);
+      if (el) {
+        params[key] = key === 'type' ? el.value : parseFloat(el.value) || template.defaultParams[key];
+      } else {
+        params[key] = template.defaultParams[key];
+      }
+    });
+    
+    const solution = generateRobotSolution(type, params);
+    const resultDiv = document.getElementById('solution-result');
+    
+    if (solution) {
+      resultDiv.innerHTML = '<div class="card">' + renderRobotSolution(solution) + '</div>';
+    } else {
+      resultDiv.innerHTML = '<p style="color:#f66;">方案生成失败，请检查参数</p>';
+    }
+  } catch (e) {
+    const resultDiv = document.getElementById('solution-result');
+    resultDiv.innerHTML = '<p style="color:#f66;">错误: ' + e.message + '</p><pre style="color:#f88;font-size:11px;">' + e.stack + '</pre>';
+  }
+}
+
+// 重置方案参数
+function resetSolution() {
+  updateSolutionParams();
+  document.getElementById('solution-result').innerHTML = '';
+}
+
+// 页面加载时初始化方案推荐参数
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('solution-params')) {
+    updateSolutionParams();
+  }
+  // 绑定生成方案按钮事件
+  const btnGenerate = document.getElementById('btn-generate-solution');
+  if (btnGenerate) {
+    btnGenerate.addEventListener('click', generateSolution);
+  }
+  // 绑定重置按钮事件
+  const btnReset = document.getElementById('btn-reset-solution');
+  if (btnReset) {
+    btnReset.addEventListener('click', resetSolution);
+  }
+  // 绑定智能生成按钮事件
+  const btnSmartGenerate = document.getElementById('btn-smart-generate');
+  if (btnSmartGenerate) {
+    btnSmartGenerate.addEventListener('click', smartGenerateSolution);
+  }
+  // 绑定快捷示例按钮事件
+  document.querySelectorAll('.prompt-example').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prompt = btn.getAttribute('data-prompt');
+      document.getElementById('smart-prompt').value = prompt;
+      smartGenerateSolution();
+    });
+  });
+  // 回车触发智能生成
+  const smartPromptInput = document.getElementById('smart-prompt');
+  if (smartPromptInput) {
+    smartPromptInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        smartGenerateSolution();
+      }
+    });
+  }
+  // 高级设置折叠/展开
+  const advancedToggle = document.getElementById('advanced-toggle');
+  if (advancedToggle) {
+    advancedToggle.addEventListener('click', () => {
+      const settings = document.getElementById('advanced-settings');
+      const arrow = document.getElementById('advanced-arrow');
+      if (settings.style.display === 'none') {
+        settings.style.display = 'block';
+        arrow.style.transform = 'rotate(90deg)';
+      } else {
+        settings.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+      }
+    });
+  }
+});
+
+// ==================== 智能提示词解析 ====================
+
+// 场景配置：不同应用场景的参数特征
+const SCENE_PROFILES = {
+  // 人形机器人场景
+  'service_humanoid': { name: '服务人形机器人', height: 170, weight: 60, payload: 3, speed: 0.8, backlash: 5, accuracy: 0.1 },
+  'industrial_humanoid': { name: '工业人形机器人', height: 180, weight: 85, payload: 10, speed: 0.5, backlash: 3, accuracy: 0.05 },
+  'commercial_humanoid': { name: '商用服务机器人', height: 155, weight: 45, payload: 2, speed: 1.0, backlash: 10, accuracy: 0.2 },
+  'education_humanoid': { name: '教育科研机器人', height: 160, weight: 50, payload: 5, speed: 1.0, backlash: 1, accuracy: 0.05 },
+  'medical_humanoid': { name: '医疗康复机器人', height: 160, weight: 55, payload: 3, speed: 0.3, backlash: 0.5, accuracy: 0.02 },
+  'entertainment_humanoid': { name: '娱乐表演机器人', height: 165, weight: 55, payload: 2, speed: 1.2, backlash: 8, accuracy: 0.15 },
+  'heavy_humanoid': { name: '重载人形机器人', height: 190, weight: 120, payload: 20, speed: 0.4, backlash: 5, accuracy: 0.1 },
+  'lightweight_humanoid': { name: '轻量人形机器人', height: 140, weight: 35, payload: 1, speed: 1.5, backlash: 10, accuracy: 0.2 },
+  // 机械臂场景
+  'industrial_arm': { name: '工业机械臂', payload: 10, reach: 1000, dof: 6, speed: 1.5, backlash: 5, accuracy: 0.08 },
+  'collaborative_arm': { name: '协作机械臂', payload: 5, reach: 800, dof: 7, speed: 1.0, backlash: 1, accuracy: 0.03 },
+  'heavy_arm': { name: '重载机械臂', payload: 25, reach: 1500, dof: 6, speed: 0.8, backlash: 10, accuracy: 0.1 },
+  'lightweight_arm': { name: '轻量机械臂', payload: 3, reach: 600, dof: 6, speed: 2.0, backlash: 3, accuracy: 0.05 },
+  'precision_arm': { name: '精密装配臂', payload: 2, reach: 500, dof: 6, speed: 0.5, backlash: 0.5, accuracy: 0.01 },
+  'welding_arm': { name: '焊接机械臂', payload: 8, reach: 1200, dof: 6, speed: 1.0, backlash: 5, accuracy: 0.05 },
+  'palletizing_arm': { name: '码垛机械臂', payload: 15, reach: 1800, dof: 4, speed: 2.0, backlash: 15, accuracy: 0.2 },
+  // 四足机器狗场景
+  'industrial_quadruped': { name: '工业巡检机器狗', weight: 25, payload: 8, speed: 1.0, legLength: 35, backlash: 5, accuracy: 0.1 },
+  'consumer_quadruped': { name: '消费级机器狗', weight: 12, payload: 2, speed: 2.0, legLength: 25, backlash: 10, accuracy: 0.2 },
+  'military_quadruped': { name: '军用负重机器狗', weight: 50, payload: 20, speed: 1.5, legLength: 40, backlash: 8, accuracy: 0.15 },
+  'research_quadruped': { name: '科研教学机器狗', weight: 15, payload: 5, speed: 1.5, legLength: 30, backlash: 3, accuracy: 0.1 },
+  // 夹爪/灵巧手场景
+  'industrial_gripper': { name: '工业夹爪', gripForce: 50, objectWeight: 5, dof: 2, type: 'parallel', backlash: 5, accuracy: 0.1 },
+  'dexterous_hand': { name: '灵巧手', gripForce: 20, objectWeight: 1, dof: 15, type: 'dexterous', backlash: 1, accuracy: 0.05 },
+  'soft_gripper': { name: '柔性夹爪', gripForce: 10, objectWeight: 0.5, dof: 3, type: 'soft', backlash: 10, accuracy: 0.2 },
+  'precision_gripper': { name: '精密夹爪', gripForce: 5, objectWeight: 0.2, dof: 2, type: 'parallel', backlash: 0.5, accuracy: 0.02 }
+};
+
+// 解析自然语言提示词，提取机器人类型和参数
+function parseSmartPrompt(prompt) {
+  const text = prompt.toLowerCase().trim();
+  const result = {
+    type: null,
+    params: {},
+    scene: null,
+    confidence: 0
+  };
+  
+  // 1. 识别机器人类型
+  if (/人形|humanoid|双足|服务机器人|康复机器人|表演机器人|迎宾机器人|导览机器人/.test(text)) {
+    result.type = 'humanoid';
+    result.confidence += 30;
+  } else if (/机械臂|协作臂|机械手臂|arm|robot arm| manipulator|机械手腕|码垛臂|焊接臂|装配臂/.test(text)) {
+    result.type = 'arm';
+    result.confidence += 30;
+  } else if (/机器狗|四足|quadruped|dog|足式/.test(text)) {
+    result.type = 'quadruped';
+    result.confidence += 30;
+  } else if (/夹爪|灵巧手|gripper|手爪|末端执行器|机械手/.test(text)) {
+    result.type = 'gripper';
+    result.confidence += 30;
+  }
+  
+  // 如果没有明确类型，根据关键词推断
+  if (!result.type) {
+    if (/轴|自由度|dof|关节/.test(text) && !/人形|机器狗/.test(text)) {
+      result.type = 'arm';
+      result.confidence += 10;
+    } else if (/身高|米|cm|厘米/.test(text) && /kg|公斤|千克/.test(text)) {
+      result.type = 'humanoid';
+      result.confidence += 10;
+    } else {
+      // 默认机械臂
+      result.type = 'arm';
+      result.confidence += 5;
+    }
+  }
+  
+  // 2. 识别应用场景，根据场景设置默认参数
+  let sceneKey = null;
+  
+  // 人形机器人场景识别
+  if (result.type === 'humanoid') {
+    if (/服务|客服|接待|导览|讲解/.test(text)) {
+      sceneKey = 'service_humanoid';
+    } else if (/工业|工厂|车间|搬运|装配/.test(text)) {
+      sceneKey = 'industrial_humanoid';
+    } else if (/商用|商场|餐厅|酒店|零售/.test(text)) {
+      sceneKey = 'commercial_humanoid';
+    } else if (/教育|教学|科研|实验室|大学/.test(text)) {
+      sceneKey = 'education_humanoid';
+    } else if (/医疗|康复|护理|医院|手术/.test(text)) {
+      sceneKey = 'medical_humanoid';
+    } else if (/娱乐|表演|舞台|cosplay|主播/.test(text)) {
+      sceneKey = 'entertainment_humanoid';
+    } else if (/重载|大力士|搬运工|负重/.test(text)) {
+      sceneKey = 'heavy_humanoid';
+    } else if (/轻量|轻型|小型|迷你|桌面/.test(text)) {
+      sceneKey = 'lightweight_humanoid';
+    }
+  }
+  // 机械臂场景识别
+  else if (result.type === 'arm') {
+    if (/码垛|堆垛|palletiz/.test(text)) {
+      sceneKey = 'palletizing_arm';
+    } else if (/焊接|焊|weld/.test(text)) {
+      sceneKey = 'welding_arm';
+    } else if (/精密|装配|电子|芯片|高精度装配/.test(text)) {
+      sceneKey = 'precision_arm';
+    } else if (/协作|人机协作|安全|sensitive/.test(text)) {
+      sceneKey = 'collaborative_arm';
+    } else if (/重载|大负载|重型/.test(text)) {
+      sceneKey = 'heavy_arm';
+    } else if (/轻量|轻型|小型|桌面|迷你/.test(text)) {
+      sceneKey = 'lightweight_arm';
+    } else if (/工业|工厂|车间/.test(text)) {
+      sceneKey = 'industrial_arm';
+    }
+  }
+  // 四足机器狗场景识别
+  else if (result.type === 'quadruped') {
+    if (/工业|巡检|勘探|电力|石油/.test(text)) {
+      sceneKey = 'industrial_quadruped';
+    } else if (/消费|家用|陪伴|玩具|宠物/.test(text)) {
+      sceneKey = 'consumer_quadruped';
+    } else if (/军用|军事|负重|侦察|作战/.test(text)) {
+      sceneKey = 'military_quadruped';
+    } else if (/科研|教学|实验室|大学/.test(text)) {
+      sceneKey = 'research_quadruped';
+    }
+  }
+  // 夹爪/灵巧手场景识别
+  else if (result.type === 'gripper') {
+    if (/灵巧|多指|仿生|人手/.test(text)) {
+      sceneKey = 'dexterous_hand';
+    } else if (/柔性|软体|soft|易碎/.test(text)) {
+      sceneKey = 'soft_gripper';
+    } else if (/精密|微型|电子|芯片/.test(text)) {
+      sceneKey = 'precision_gripper';
+    } else if (/工业|搬运|重型/.test(text)) {
+      sceneKey = 'industrial_gripper';
+    }
+  }
+  
+  // 如果识别到场景，使用场景参数作为默认值
+  if (sceneKey && SCENE_PROFILES[sceneKey]) {
+    const profile = SCENE_PROFILES[sceneKey];
+    result.scene = profile.name;
+    Object.entries(profile).forEach(([key, val]) => {
+      if (key !== 'name' && key !== 'type') {
+        result.params[key] = val;
+      }
+    });
+    result.confidence += 20;
+  }
+  
+  // 3. 提取数值参数（覆盖场景默认值）
+  // 身高（人形机器人）：1.6米 / 160cm / 160厘米
+  const heightMatch = text.match(/(\d+\.?\d*)\s*(米|cm|厘米)(?!\/s|\/秒)/);
+  if (heightMatch) {
+    let h = parseFloat(heightMatch[1]);
+    if (heightMatch[2] === '米') {
+      h = h * 100;
+    }
+    if (h > 50 && h < 300) {
+      result.params.height = Math.round(h);
+      result.confidence += 10;
+    }
+  }
+  
+  // 重量/整机重量：50kg / 50公斤 / 20千克
+  const weightMatch = text.match(/(\d+\.?\d*)\s*(kg|公斤|千克)/);
+  if (weightMatch) {
+    const w = parseFloat(weightMatch[1]);
+    if (result.type === 'humanoid' && w > 20 && w < 200) {
+      result.params.weight = Math.round(w);
+      result.confidence += 10;
+    } else if (result.type === 'quadruped' && w > 5 && w < 100) {
+      result.params.weight = Math.round(w);
+      result.confidence += 10;
+    }
+  }
+  
+  // 负载：5kg负载 / 负载10kg / 末端5kg
+  const payloadMatch = text.match(/(?:负载|末端|抓取|背负)\s*(\d+\.?\d*)\s*(kg|公斤|千克)?/);
+  if (payloadMatch) {
+    const p = parseFloat(payloadMatch[1]);
+    if (p > 0.1 && p < 100) {
+      if (result.type === 'arm') {
+        result.params.payload = Math.round(p * 10) / 10;
+      } else if (result.type === 'humanoid') {
+        result.params.payload = Math.round(p * 10) / 10;
+      } else if (result.type === 'quadruped') {
+        result.params.payload = Math.round(p * 10) / 10;
+      } else if (result.type === 'gripper') {
+        result.params.objectWeight = Math.round(p * 10) / 10;
+      }
+      result.confidence += 10;
+    }
+  }
+  
+  // 轴数/自由度：7轴 / 6自由度 / 15dof
+  const dofMatch = text.match(/(\d+)\s*(轴|自由度|dof|degree)/);
+  if (dofMatch) {
+    const dof = parseInt(dofMatch[1]);
+    if (result.type === 'arm' && dof >= 4 && dof <= 10) {
+      result.params.dof = dof;
+      result.confidence += 10;
+    } else if (result.type === 'gripper' && dof >= 1 && dof <= 20) {
+      result.params.dof = dof;
+      result.confidence += 10;
+    }
+  }
+  
+  // 臂展：800mm臂展 / 臂展1米
+  const reachMatch = text.match(/臂展\s*(\d+\.?\d*)\s*(mm|cm|米|m)?/);
+  if (reachMatch && result.type === 'arm') {
+    let r = parseFloat(reachMatch[1]);
+    const unit = reachMatch[2] || 'mm';
+    if (unit === '米' || unit === 'm') r = r * 1000;
+    if (unit === 'cm') r = r * 10;
+    if (r > 200 && r < 3000) {
+      result.params.reach = Math.round(r);
+      result.confidence += 10;
+    }
+  }
+  
+  // 速度：1.5m/s / 速度1米每秒
+  const speedMatch = text.match(/速度\s*(\d+\.?\d*)\s*(m\/s|米\/秒|米每秒)?/);
+  if (speedMatch) {
+    const s = parseFloat(speedMatch[1]);
+    if (s > 0.1 && s < 10) {
+      result.params.speed = Math.round(s * 10) / 10;
+      result.confidence += 5;
+    }
+  }
+  
+  // 背隙要求：背隙小于1弧分 / 背隙<5 / 高精度
+  const backlashMatch = text.match(/背隙\s*(?:小于|低于|<|<=)?\s*(\d+\.?\d*)\s*(弧分|arcmin)?/);
+  if (backlashMatch) {
+    result.params.backlash = parseFloat(backlashMatch[1]);
+    result.confidence += 10;
+  } else if (/高精度|精密|高精度/.test(text)) {
+    result.params.backlash = 1;
+    result.params.accuracy = 0.05;
+    result.confidence += 10;
+  }
+  
+  // 重复定位精度：精度0.05度 / 定位精度小于0.1度
+  const accuracyMatch = text.match(/(?:精度|定位精度)\s*(?:小于|低于|<|<=)?\s*(\d+\.?\d*)\s*度/);
+  if (accuracyMatch) {
+    result.params.accuracy = parseFloat(accuracyMatch[1]);
+    result.confidence += 10;
+  }
+  
+  // 夹持力：20N夹持力 / 夹持力50N
+  const gripForceMatch = text.match(/(?:夹持力|抓力|夹力)\s*(\d+\.?\d*)\s*n/);
+  if (gripForceMatch && result.type === 'gripper') {
+    result.params.gripForce = parseFloat(gripForceMatch[1]);
+    result.confidence += 10;
+  }
+  
+  // 4. 填充默认参数（未识别的参数用模板默认值）
+  const template = ROBOT_TEMPLATES[result.type];
+  if (template) {
+    Object.entries(template.defaultParams).forEach(([key, val]) => {
+      if (result.params[key] === undefined) {
+        result.params[key] = val;
+      }
+    });
+  }
+  
+  return result;
+}
+
+// 智能生成方案
+function smartGenerateSolution() {
+  const promptInput = document.getElementById('smart-prompt');
+  const prompt = promptInput.value.trim();
+  
+  if (!prompt) {
+    alert('请输入描述，例如：7轴机械臂、1.6米人形机器人');
+    return;
+  }
+  
+  // 解析提示词
+  const parsed = parseSmartPrompt(prompt);
+  
+  if (!parsed.type) {
+    alert('无法识别机器人类型，请描述更清楚一些，例如："7轴机械臂"或"人形机器人"');
+    return;
+  }
+  
+  // 更新机器人类型选择
+  const typeSelect = document.getElementById('solution-type');
+  if (typeSelect) {
+    typeSelect.value = parsed.type;
+    updateSolutionParams();
+  }
+  
+  // 填充参数到输入框
+  setTimeout(() => {
+    Object.entries(parsed.params).forEach(([key, val]) => {
+      const input = document.getElementById('param-' + key);
+      if (input) {
+        input.value = val;
+      }
+    });
+    
+    // 生成方案
+    generateSolution();
+    
+    // 显示解析结果提示
+    const resultDiv = document.getElementById('solution-result');
+    if (resultDiv) {
+      const template = ROBOT_TEMPLATES[parsed.type];
+      const paramText = Object.entries(parsed.params).map(([k, v]) => {
+        const label = template.paramLabels[k] || k;
+        return `${label}: ${v}`;
+      }).join('，');
+      
+      const sceneText = parsed.scene ? ` <span style="color:#ffaa44;">[${parsed.scene}]</span>` : '';
+      
+      const notice = document.createElement('div');
+      notice.style.cssText = 'background:rgba(76,175,80,0.1);border:1px solid #4caf50;border-radius:6px;padding:10px 15px;margin-bottom:15px;color:#66bb66;font-size:13px;';
+      notice.innerHTML = `✨ <strong>智能识别结果：</strong>${template.icon} ${template.name}${sceneText} | ${paramText}`;
+      resultDiv.insertBefore(notice, resultDiv.firstChild);
+    }
+  }, 100);
+}
+
 </script>
 <script>
 // ===== 全局状态 =====
@@ -1439,6 +3849,11 @@ function doManualSelect() {
   }
   const tolerance = parseFloat(document.getElementById('m-tolerance').value);
   const filters = getFilters('m-types', 'm-comm', 'm-voltage');
+  // 读取高级筛选参数
+  filters.maxLength = parseFloat(document.getElementById('m-length').value);
+  filters.maxOd = parseFloat(document.getElementById('m-od').value);
+  filters.minSpeed = parseFloat(document.getElementById('m-speed').value);
+  filters.minPower = parseFloat(document.getElementById('m-power').value);
   const results = selectProducts(rated, peak, tolerance, filters);
 
   const container = document.getElementById('manual-result');
@@ -1496,6 +3911,10 @@ function resetManual() {
   document.getElementById('m-tol-val').textContent = '±3 Nm';
   document.getElementById('m-comm').value = 'all';
   document.getElementById('m-voltage').value = 'all';
+  document.getElementById('m-length').value = '';
+  document.getElementById('m-od').value = '';
+  document.getElementById('m-speed').value = '';
+  document.getElementById('m-power').value = '';
   initCheckboxes('m-types');
   document.getElementById('manual-result').innerHTML = '';
 }
