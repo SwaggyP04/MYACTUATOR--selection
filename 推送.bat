@@ -20,7 +20,7 @@ git add -A
 git diff --cached --quiet
 if not errorlevel 1 (
   echo   没有改动需要推送
-  timeout /t 3 /nobreak >nul
+  ping -n 4 127.0.0.1 >nul
   exit /b 0
 )
 
@@ -71,7 +71,7 @@ for /l %%n in (1,1,3) do (
       set PUSH_OK=1
     ) else (
       echo   本次失败，5 秒后重试...
-      timeout /t 5 /nobreak >nul
+      ping -n 6 127.0.0.1 >nul
     )
   )
 )
@@ -89,4 +89,4 @@ echo ============================================================
 echo   约 1 分钟后生效：
 echo   https://swaggyp04.github.io/MYACTUATOR--selection/
 echo.
-timeout /t 5 /nobreak >nul
+ping -n 6 127.0.0.1 >nul

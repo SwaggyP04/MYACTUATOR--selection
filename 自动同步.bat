@@ -39,7 +39,7 @@ set CNT=0
     set IDLE=0
   )
 
-  timeout /t 10 /nobreak >nul
+  ping -n 11 127.0.0.1 >nul
 goto loop
 
 :dopush
@@ -68,7 +68,7 @@ goto loop
     if !PUSH_OK!==0 (
       git push origin main >nul 2>&1
       if not errorlevel 1 set PUSH_OK=1
-      if !PUSH_OK!==0 timeout /t 4 /nobreak >nul
+      if !PUSH_OK!==0 ping -n 5 127.0.0.1 >nul
     )
   )
   if !PUSH_OK!==0 (
