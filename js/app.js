@@ -894,7 +894,7 @@ let FAQ_KNOWLEDGE = [
 4. 是否需要特殊通信协议定制
 
 请联系脉塔智能销售团队获取正式报价：
-- 官网：www.myactuator.com
+- 官网：www.myactuator.cn
 - 或通过您的业务对接人咨询`
   },
   {
