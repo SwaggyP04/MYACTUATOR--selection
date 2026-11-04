@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ 管理后台 · 脉塔电机选型系统</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #0d1117; color: #c9d1d9; line-height: 1.6;
+    padding: 20px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  h1 { font-size: 22px; color: #4a9eff; margin-bottom: 6px; }
+  .sub { font-size: 13px; color: #667788; margin-bottom: 20px; }
+
+  .card {
+    background: #161b22; border: 1px solid #2a3038; border-radius: 8px;
+    padding: 18px; margin-bottom: 16px;
+  }
+
+  label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
+  input[type=text], input[type=password], textarea, select {
+    width: 100%; background: #0d1117; border: 1px solid #2a3038;
+    border-radius: 6px; color: #c9d1d9; padding: 9px 11px;
+    font-family: inherit; font-size: 14px; outline: none;
+  }
+  input:focus, textarea:focus { border-color: #4a9eff; }
+  textarea { resize: vertical; min-height: 90px; font-family: Consolas, monospace; line-height: 1.7; }
+
+  button {
+    background: #238636; color: #fff; border: none; border-radius: 6px;
+    padding: 9px 18px; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  button:hover { filter: brightness(1.15); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.sec { background: #21262d; border: 1px solid #30363d; }
+  button.danger { background: #b62324; }
+  button.sm { padding: 5px 11px; font-size: 13px; }
+
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .grow { flex: 1; }
+
+  /* 登录 */
+  #login { max-width: 620px; margin: 60px auto; }
+  .help {
+    background: #0d1117; border-left: 3px solid #4a9eff;
+    padding: 12px 15px; margin: 14px 0; font-size: 13px; color: #8b949e;
+  }
+  .help b { color: #c9d1d9; }
+  .help ol { margin: 8px 0 0 20px; }
+  .help li { margin: 4px 0; }
+  .help code {
+    background: #21262d; padding: 1px 5px; border-radius: 3px;
+    color: #79c0ff; font-size: 12px;
+  }
+
+  /* 列表 */
+  .faq-item {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .faq-item.editing { border-color: #4a9eff; }
+  .faq-head { display: flex; gap: 10px; align-items: flex-start; }
+  .faq-q { flex: 1; font-size: 15px; font-weight: 600; color: #e6edf3; }
+  .faq-idx { color: #4a9eff; font-size: 13px; min-width: 26px; }
+  .faq-kw {
+    display: inline-block; background: #1f2937; color: #79c0ff;
+    font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    margin: 3px 4px 0 0;
+  }
+  .faq-body {
+    font-size: 13px; color: #8b949e; margin-top: 9px;
+    max-height: 90px; overflow: hidden; position: relative;
+    white-space: pre-wrap;
+  }
+  .faq-body.open { max-height: none; }
+  .faq-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+  .edit-form .row { margin-bottom: 12px; }
+  .edit-form .row label { margin-bottom: 4px; }
+
+  /* 状态条 */
+  #status {
+    padding: 10px 14px; border-radius: 6px; font-size: 13px;
+    margin-bottom: 14px; display: none; white-space: pre-wrap;
+  }
+  #status.ok  { display: block; background: #0f2f1a; color: #7ee787; border: 1px solid #238636; }
+  #status.err { display: block; background: #3d1214; color: #ff7b72; border: 1px solid #b62324; }
+  #status.info{ display: block; background: #0d2440; color: #79c0ff; border: 1px solid #1f6feb; }
+
+  #toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .meta { font-size: 12px; color: #667788; }
+
+  .hint { font-size: 12px; color: #667788; margin-top: 5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══════════════ 登录 ══════════════ -->
+<div id="login" class="card" style="display:none">
+  <h1>FAQ 管理后台</h1>
+  <div class="sub">脉塔电机选型系统 · 仅限授权用户</div>
+
+  <div class="help">
+    <b>如何获取访问令牌（只需做一次）：</b>
+    <ol>
+      <li>打开 <code>github.com/settings/tokens?type=beta</code></li>
+      <li>点 <code>Generate new token</code></li>
+      <li><b>Token name</b>：随便填，如 <code>faq-admin</code></li>
+      <li><b>Expiration</b>：建议 90 天</li>
+      <li><b>Repository access</b>：选 <code>Only select repositories</code> → 勾选 <code>MYACTUATOR--selection</code></li>
+      <li><b>Permissions</b> → 展开 <code>Repository permissions</code> → 找到 <code>Contents</code> → 设为 <b>Read and write</b></li>
+      <li>点 <code>Generate token</code>，复制那串 <code>github_pat_...</code></li>
+    </ol>
+    <br>
+    <b>⚠ 只有被加为仓库 Collaborator 的账号，令牌才有写权限。其他人即使拿到令牌也会被 GitHub 拒绝。</b>
+  </div>
+
+  <div style="margin-top:16px">
+    <label>GitHub 访问令牌</label>
+    <input type="password" id="tokenInput" placeholder="github_pat_xxxxxxxxxxxx">
+    <div class="hint">令牌只保存在本机浏览器，不会上传到任何服务器</div>
+  </div>
+
+  <div class="row" style="margin-top:16px">
+    <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer">
+      <input type="checkbox" id="remember" checked>
+      <span>记住令牌（下次免输入）</span>
+    </label>
+  </div>
+
+  <div class="row" style="margin-top:16px">
+    <button onclick="doLogin()">验证并进入</button>
+    <span id="loginMsg" class="meta"></span>
+  </div>
+</div>
+
+<!-- ══════════════ 主体 ══════════════ -->
+<div id="app" style="display:none">
+  <h1>FAQ 管理后台</h1>
+  <div class="sub" id="repoInfo"></div>
+
+  <div id="status"></div>
+
+  <div class="card">
+    <div id="toolbar">
+      <button onclick="addNew()">＋ 新增 FAQ</button>
+      <button class="sec" onclick="loadFAQ(true)">↻ 重新读取</button>
+      <button class="grow" style="visibility:hidden"></button>
+      <span class="meta" id="dirtyInfo"></span>
+      <button id="saveBtn" onclick="saveToGitHub()" disabled>保存到 GitHub</button>
+      <button class="sec" onclick="logout()">退出</button>
+    </div>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="card" style="text-align:center">
+    <button id="saveBtn2" onclick="saveToGitHub()" disabled>保存到 GitHub</button>
+    <div class="hint" style="margin-top:8px">保存后 GitHub Pages 约 1 分钟内自动更新</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  配置
+// ═══════════════════════════════════════════════════════════════
+const CFG = {
+  owner:  'SwaggyP04',
+  repo:   'MYACTUATOR--selection',
+  branch: 'main',
+  path:   'data/faq.json'
+};
+
+const LS_KEY = 'faq_admin_token';
+
+let state = {
+  token: '',
+  sha: null,        // 当前文件的 blob sha，更新时必须带上
+  faq: [],          // 当前内存里的 FAQ
+  dirty: false,     // 是否有未保存改动
+  editing: null     // 正在编辑的索引
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  工具
+// ═══════════════════════════════════════════════════════════════
+function showStatus(msg, type = 'info') {
+  const el = document.getElementById('status');
+  el.className = type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'info';
+  el.textContent = msg;
+  if (type === 'ok') setTimeout(() => { if (el.className === 'ok') el.style.display = 'none'; }, 6000);
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+// UTF-8 安全的 base64
+function b64encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+function b64decode(b64) {
+  const bin = atob(String(b64).replace(/\s/g, ''));
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+function apiUrl() {
+  return `https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${CFG.path}`;
+}
+
+function authHeaders() {
+  return {
+    'Authorization': 'Bearer ' + state.token,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+}
+
+function markDirty(v) {
+  state.dirty = v;
+  document.getElementById('saveBtn').disabled = !v;
+  document.getElementById('saveBtn2').disabled = !v;
+  document.getElementById('dirtyInfo').textContent = v ? '● 有未保存改动' : '';
+  document.getElementById('dirtyInfo').style.color = v ? '#f0a74b' : '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  登录
+// ═══════════════════════════════════════════════════════════════
+function init() {
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved) {
+    state.token = saved;
+    enterApp();
+  } else {
+    document.getElementById('login').style.display = 'block';
+  }
+}
+
+async function doLogin() {
+  const t = document.getElementById('tokenInput').value.trim();
+  const msg = document.getElementById('loginMsg');
+  if (!t) { msg.textContent = '请输入令牌'; return; }
+  if (!/^(ghp_|github_pat_)/.test(t)) {
+    msg.textContent = '令牌格式不对，应以 github_pat_ 或 ghp_ 开头';
+    return;
+  }
+  msg.textContent = '验证中…';
+  state.token = t;
+
+  try {
+    const r = await fetch(apiUrl(), { headers: authHeaders() });
+    if (r.status === 401) throw new Error('令牌无效或已过期');
+    if (r.status === 403) throw new Error('令牌没有该仓库的权限');
+    if (r.status === 404) {
+      // 文件还不存在，但仓库可访问（或者仓库不存在）
+      const rr = await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}`, { headers: authHeaders() });
+      if (rr.status === 404) throw new Error('仓库不存在，或令牌没有访问权限');
+    }
+    if (document.getElementById('remember').checked) {
+      localStorage.setItem(LS_KEY, t);
+    } else {
+      localStorage.removeItem(LS_KEY);
+    }
+    enterApp();
+  } catch (e) {
+    msg.textContent = '✘ ' + e.message;
+  }
+}
+
+function logout() {
+  localStorage.removeItem(LS_KEY);
+  location.reload();
+}
+
+function enterApp() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('repoInfo').textContent =
+    `${CFG.owner}/${CFG.repo} · 分支 ${CFG.branch} · 文件 ${CFG.path}`;
+  loadFAQ();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  读取
+// ═══════════════════════════════════════════════════════════════
+async function loadFAQ(force = false) {
+  if (state.dirty && force && !confirm('有未保存的改动，确定放弃并重新读取？')) return;
+  showStatus('正在从 GitHub 读取…', 'info');
+
+  try {
+    const r = await fetch(apiUrl() + '?ref=' + CFG.branch, { headers: authHeaders() });
+
+    if (r.status === 404) {
+      state.faq = [];
+      state.sha = null;
+      showStatus('data/faq.json 还不存在。新增第一条后保存，会自动创建该文件。', 'info');
+      renderList();
+      markDirty(false);
+      return;
+    }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+
+    const j = await r.json();
+    state.sha = j.sha;
+    let data;
+    try {
+      data = JSON.parse(b64decode(j.content));
+    } catch (e) {
+      throw new Error('文件不是合法 JSON：' + e.message);
+    }
+    if (!Array.isArray(data)) throw new Error('文件内容不是数组');
+
+    state.faq = data;
+    state.editing = null;
+    renderList();
+    markDirty(false);
+    showStatus(`已读取 ${data.length} 条 FAQ`, 'ok');
+  } catch (e) {
+    showStatus('读取失败：' + e.message, 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  渲染
+// ═══════════════════════════════════════════════════════════════
+function renderList() {
+  const box = document.getElementById('list');
+  if (!state.faq.length) {
+    box.innerHTML = '<div class="card" style="text-align:center;color:#667788">暂无 FAQ，点「＋ 新增 FAQ」开始</div>';
+    return;
+  }
+
+  box.innerHTML = state.faq.map((f, i) => {
+    if (state.editing === i) return renderEditForm(f, i);
+
+    const kws = (f.keywords || []).map(k => `<span class="faq-kw">${esc(k)}</span>`).join('');
+    return `
+      <div class="faq-item">
+        <div class="faq-head">
+          <span class="faq-idx">${i + 1}</span>
+          <div class="faq-q">${esc(f.question || '(无标题)')}</div>
+        </div>
+        <div style="margin-left:36px">${kws}</div>
+        <div class="faq-body" id="body-${i}" style="margin-left:36px">${esc(f.answer || '')}</div>
+        <div class="faq-actions" style="margin-left:36px">
+          <button class="sec sm" onclick="toggleBody(${i})">展开/收起</button>
+          <button class="sec sm" onclick="startEdit(${i})">编辑</button>
+          <button class="danger sm" onclick="delItem(${i})">删除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderEditForm(f, i) {
+  return `
+    <div class="faq-item editing">
+      <div class="faq-head">
+        <span class="faq-idx">${i + 1}</span>
+        <div class="faq-q">编辑中…</div>
+      </div>
+      <div class="edit-form" style="margin:12px 0 0 36px">
+        <div class="row">
+          <div class="grow">
+            <label>问题标题</label>
+            <input type="text" id="ed-q" value="${esc(f.question || '')}" placeholder="例如：关于抱闸（刹车）">
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>关键词（用英文逗号分隔，用于智能问答匹配）</label>
+            <input type="text" id="ed-kw" value="${esc((f.keywords || []).join(', '))}">
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>答案（支持 Markdown：**粗体**、换行、- 列表）</label>
+            <textarea id="ed-a" rows="14">${esc(f.answer || '')}</textarea>
+          </div>
+        </div>
+        <div class="row">
+          <button onclick="applyEdit(${i})">✔ 确定</button>
+          <button class="sec" onclick="cancelEdit()">取消</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleBody(i) {
+  document.getElementById('body-' + i).classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  编辑
+// ═══════════════════════════════════════════════════════════════
+function startEdit(i) {
+  state.editing = i;
+  renderList();
+  document.getElementById('ed-q')?.focus();
+}
+
+function cancelEdit() {
+  state.editing = null;
+  renderList();
+}
+
+function applyEdit(i) {
+  const q = document.getElementById('ed-q').value.trim();
+  const kw = document.getElementById('ed-kw').value
+    .split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  const a = document.getElementById('ed-a').value;
+
+  if (!q) { alert('问题标题不能为空'); return; }
+  if (!a.trim()) { alert('答案不能为空'); return; }
+
+  state.faq[i] = {
+    ...state.faq[i],
+    question: q,
+    keywords: kw,
+    answer: a,
+    updated_at: new Date().toISOString().slice(0, 10)
+  };
+  state.editing = null;
+  renderList();
+  markDirty(true);
+}
+
+function addNew() {
+  state.faq.unshift({
+    id: Date.now(),
+    question: '',
+    keywords: [],
+    answer: '',
+    sort_order: 0,
+    updated_at: new Date().toISOString().slice(0, 10)
+  });
+  state.editing = 0;
+  renderList();
+  markDirty(true);
+  document.getElementById('ed-q')?.focus();
+}
+
+function delItem(i) {
+  if (!confirm(`确定删除「${state.faq[i].question || '无标题'}」？\n\n（保存到 GitHub 之前还可以刷新页面放弃）`)) return;
+  state.faq.splice(i, 1);
+  if (state.editing === i) state.editing = null;
+  renderList();
+  markDirty(true);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  保存
+// ═══════════════════════════════════════════════════════════════
+async function saveToGitHub() {
+  if (state.editing !== null) {
+    alert('请先完成正在编辑的条目（点「确定」或「取消」）');
+    return;
+  }
+  const msg = prompt('这次修改的说明（会记录在 git 提交历史里）：',
+                     '更新 FAQ（' + new Date().toLocaleString('zh-CN') + '）');
+  if (msg === null) return;
+
+  document.getElementById('saveBtn').disabled = true;
+  document.getElementById('saveBtn2').disabled = true;
+  showStatus('正在提交到 GitHub…', 'info');
+
+  const body = JSON.stringify(state.faq, null, 2);
+  const payload = {
+    message: msg || '更新 FAQ',
+    content: b64encode(body),
+    branch: CFG.branch
+  };
+  if (state.sha) payload.sha = state.sha;
+
+  try {
+    const r = await fetch(apiUrl(), {
+      method: 'PUT',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (r.status === 403) throw new Error('没有写权限 —— 请确认该账号是仓库 Collaborator，且令牌 Contents 权限为 Read and write');
+      if (r.status === 409) throw new Error('文件在别处被修改过，请点「重新读取」后再改');
+      throw new Error(err.message || ('HTTP ' + r.status));
+    }
+
+    const j = await r.json();
+    state.sha = j.content.sha;
+    markDirty(false);
+    showStatus(
+      '✔ 已提交到 GitHub\n' +
+      '提交：' + j.commit.sha.slice(0, 7) + '\n' +
+      'GitHub Pages 约 1 分钟内自动更新',
+      'ok'
+    );
+  } catch (e) {
+    showStatus('保存失败：' + e.message, 'err');
+    markDirty(true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('beforeunload', e => {
+  if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+init();
+</script>
+</body>
+</html>

@@ -1792,7 +1792,7 @@ function parseTextInput() {
 let aiChatHistory = [];
 
 // 常见问题知识库
-const FAQ_KNOWLEDGE = [
+let FAQ_KNOWLEDGE = [
   {
     keywords: ['行星', '谐波', '区别', '差异', '对比'],
     answer: `**行星模组 vs 谐波模组区别：**
@@ -2092,6 +2092,34 @@ H系列中空直驱模组内径参数：
   }
 ];
 
+;
+
+/* ═══════════════════════════════════════════════════════════════════
+   ★ 2026-11 改造：FAQ 改为从 data/faq.json 动态加载
+   ───────────────────────────────────────────────────────────────────
+   · data/faq.json 可由网站管理页 /admin.html 在线编辑
+   · 加载失败（文件缺失/网络问题）时，自动沿用上面内置的 15 条
+   · 每条只需要 keywords（数组）+ answer（Markdown 字符串）
+   ═══════════════════════════════════════════════════════════════════ */
+(function () {
+  var url = 'data/faq.json?t=' + Date.now();
+  fetch(url, { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!Array.isArray(d) || !d.length) return;
+      FAQ_KNOWLEDGE.length = 0;
+      d.forEach(function (x) {
+        FAQ_KNOWLEDGE.push({
+          keywords: Array.isArray(x.keywords) ? x.keywords : [],
+          answer: String(x.answer == null ? '' : x.answer)
+        });
+      });
+      console.log('[FAQ] 已从 data/faq.json 加载 ' + FAQ_KNOWLEDGE.length + ' 条');
+    })
+    .catch(function (e) {
+      console.warn('[FAQ] data/faq.json 加载失败，使用内置数据', e);
+    });
+})();
 // 主问答函数
 function askAI() {
   const input = document.getElementById('ai-input');
