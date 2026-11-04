@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>六轴机械臂分步装配可视化 · 电机选型</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.27/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/renderers/CSS2DRenderer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@23.1.3/dist/tween.umd.js"></script>
+  <style>
+    :root {
+      --bg-deep: #0a0d12;
+      --bg-panel: #11151c;
+      --bg-panel-2: #161b24;
+      --border: #222a38;
+      --border-light: #2d3748;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-blue-soft: rgba(59, 130, 246, 0.15);
+      --accent-amber: #f59e0b;
+      --accent-amber-soft: rgba(245, 158, 11, 0.15);
+      --accent-green: #10b981;
+      --accent-green-soft: rgba(16, 185, 129, 0.15);
+      --accent-red: #ef4444;
+      --metal-highlight: #cbd5e1;
+      --metal-base: #475569;
+      --metal-dark: #1e293b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-deep); color: var(--text-primary); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; -webkit-font-smoothing: antialiased; }
+    #app { width: 100%; height: 100%; }
+    .app-container { display: flex; width: 100%; height: 100%; background: var(--bg-deep); position: relative; }
+    .param-panel { width: 360px; flex-shrink: 0; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; z-index: 10; }
+    .panel-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, var(--bg-panel-2) 0%, var(--bg-panel) 100%); }
+    .panel-title { font-size: 16px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; }
+    .panel-title::before { content: ''; width: 3px; height: 16px; background: var(--accent-blue); border-radius: 2px; }
+    .panel-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 6px; margin-left: 13px; }
+    .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin: 14px 0 8px 13px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-green)); border-radius: 2px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    .progress-text { font-size: 11px; color: var(--text-muted); margin-left: 13px; font-family: monospace; }
+    .axis-list { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .axis-list::-webkit-scrollbar { width: 6px; }
+    .axis-list::-webkit-scrollbar-track { background: transparent; }
+    .axis-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .axis-card { background: var(--bg-panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; transition: all 0.3s ease; position: relative; overflow: hidden; }
+    .axis-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--border-light); transition: background 0.3s ease; }
+    .axis-card.assembled { border-color: rgba(59, 130, 246, 0.4); background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, var(--bg-panel-2) 60%); }
+    .axis-card.assembled::before { background: var(--accent-blue); }
+    .axis-card.pending { opacity: 0.5; }
+    .axis-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .axis-label { display: flex; align-items: center; gap: 8px; }
+    .axis-badge { width: 26px; height: 26px; border-radius: 6px; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: monospace; color: var(--text-muted); transition: all 0.3s ease; }
+    .axis-card.assembled .axis-badge { background: var(--accent-blue-soft); color: var(--accent-blue); }
+    .axis-name { font-size: 13px; font-weight: 500; color: var(--text-secondary); transition: color 0.3s ease; }
+    .axis-card.assembled .axis-name { color: var(--text-primary); }
+    .axis-status { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-family: monospace; background: var(--border); color: var(--text-muted); transition: all 0.3s ease; }
+    .axis-card.assembled .axis-status { background: var(--accent-green-soft); color: var(--accent-green); }
+    .axis-params { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+    .param-item { display: flex; flex-direction: column; gap: 2px; }
+    .param-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.3px; }
+    .param-value { font-size: 12px; font-weight: 500; color: var(--text-primary); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .param-value.placeholder { color: var(--text-muted); font-style: italic; }
+    .summary-section { border-top: 1px solid var(--border); padding: 16px 20px; background: var(--bg-panel-2); transition: all 0.5s ease; }
+    .summary-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .summary-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); transition: all 0.3s ease; }
+    .summary-section.active .summary-title .dot { background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber); }
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .summary-item { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+    .summary-item-label { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+    .summary-item-value { font-size: 15px; font-weight: 700; color: var(--text-primary); font-family: monospace; }
+    .summary-item-value.placeholder { color: var(--text-muted); font-size: 13px; font-weight: 400; font-style: italic; }
+    .canvas-container { flex: 1; position: relative; overflow: hidden; background: radial-gradient(ellipse at center bottom, #141923 0%, var(--bg-deep) 70%); }
+    #three-canvas { width: 100%; height: 100%; display: block; }
+    #label-renderer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    .motor-label { background: rgba(17, 21, 28, 0.92); border: 1px solid rgba(59, 130, 246, 0.5); border-radius: 6px; padding: 8px 12px; min-width: 160px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.15); backdrop-filter: blur(8px); position: relative; transform: translate(-50%, -100%); margin-top: -8px; animation: labelPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes labelPop { 0% { opacity: 0; transform: translate(-50%, -80%) scale(0.8); } 100% { opacity: 1; transform: translate(-50%, -100%) scale(1); } }
+    .motor-label::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 10px; height: 10px; background: rgba(17, 21, 28, 0.92); border-right: 1px solid rgba(59, 130, 246, 0.5); border-bottom: 1px solid rgba(59, 130, 246, 0.5); }
+    .motor-label-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(59, 130, 246, 0.3); }
+    .motor-label-axis { font-size: 11px; font-weight: 700; color: var(--accent-blue); font-family: monospace; letter-spacing: 0.5px; }
+    .motor-label-model { font-size: 11px; color: var(--text-primary); font-weight: 500; }
+    .motor-label-params { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+    .motor-label-param { display: flex; flex-direction: column; gap: 1px; }
+    .motor-label-param .lbl { font-size: 9px; color: var(--text-muted); }
+    .motor-label-param .val { font-size: 10px; color: var(--text-secondary); font-family: monospace; }
+    .control-bar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 5; background: rgba(17, 21, 28, 0.85); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+    .ctrl-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; background: var(--bg-panel-2); border: 1px solid var(--border-light); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
+    .ctrl-btn:hover { background: var(--border); border-color: var(--accent-blue); color: var(--accent-blue); }
+    .ctrl-btn:active { transform: scale(0.97); }
+    .ctrl-btn.primary { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
+    .ctrl-btn.primary:hover { background: #2563eb; border-color: #2563eb; color: white; box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4); }
+    .ctrl-btn svg { width: 16px; height: 16px; }
+    .status-indicator { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 8px; background: rgba(17, 21, 28, 0.85); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; backdrop-filter: blur(12px); z-index: 5; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); transition: all 0.3s ease; }
+    .status-dot.assembling { background: var(--accent-amber); box-shadow: 0 0 10px var(--accent-amber); animation: pulse 1.5s ease-in-out infinite; }
+    .status-dot.running { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); animation: pulse 2s ease-in-out infinite; }
+    .status-dot.idle { background: var(--text-muted); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .status-text { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .axis-indicator { position: absolute; top: 20px; left: 20px; display: flex; gap: 6px; background: rgba(17, 21, 28, 0.85); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; backdrop-filter: blur(12px); z-index: 5; }
+    .axis-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border-light); transition: all 0.3s ease; }
+    .axis-dot.active { background: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); }
+    .axis-dot.done { background: var(--accent-green); }
+    .back-btn { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; background: rgba(17, 21, 28, 0.9); border: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s; }
+    .back-btn:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
+    .canvas-title { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 5; text-align: center; pointer-events: none; }
+    .canvas-title h1 { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: 1px; }
+    .canvas-title p { font-size: 11px; color: var(--text-muted); margin-top: 3px; font-family: monospace; }
+    .mobile-toggle { display: none; position: absolute; top: 16px; left: 16px; z-index: 20; width: 40px; height: 40px; border-radius: 10px; background: rgba(17, 21, 28, 0.9); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer; backdrop-filter: blur(10px); align-items: center; justify-content: center; }
+    @media (max-width: 900px) {
+      .param-panel { position: absolute; top: 0; left: 0; height: 100%; width: 320px; transform: translateX(-100%); transition: transform 0.3s ease; z-index: 15; }
+      .param-panel.mobile-open { transform: translateX(0); }
+      .mobile-toggle { display: flex; }
+      .axis-indicator { top: 16px; left: 64px; }
+      .control-bar { bottom: 16px; padding: 8px 10px; gap: 8px; }
+      .ctrl-btn { padding: 6px 12px; font-size: 12px; }
+      .ctrl-btn span { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="app-container">
+      <button class="back-btn" onclick="window.history.back()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        返回选型
+      </button>
+      <div class="param-panel" :class="{ 'mobile-open': panelOpen }">
+        <div class="panel-header">
+          <div class="panel-title">整机参数实时面板</div>
+          <div class="panel-subtitle">{{ robotName }} · 电机选型装配仿真</div>
+          <div class="progress-bar"><div class="progress-fill" :style="{ width: progressPercent + '%' }"></div></div>
+          <div class="progress-text">装配进度 {{ assembledCount }} / {{ axes.length }} 轴</div>
+        </div>
+        <div class="axis-list">
+          <div v-for="(axis, idx) in axes" :key="axis.key" class="axis-card" :class="{ assembled: axis.assembled, pending: !axis.assembled }">
+            <div class="axis-header">
+              <div class="axis-label">
+                <div class="axis-badge">{{ axis.key }}</div>
+                <div class="axis-name">{{ axis.name }}</div>
+              </div>
+              <div class="axis-status">{{ axis.assembled ? '已装配' : '待装配' }}</div>
+            </div>
+            <div class="axis-params">
+              <div class="param-item"><span class="param-label">电机型号</span><span class="param-value" :class="{ placeholder: !axis.assembled }">{{ axis.assembled ? axis.motor.model : '---' }}</span></div>
+              <div class="param-item"><span class="param-label">额定扭矩</span><span class="param-value" :class="{ placeholder: !axis.assembled }">{{ axis.assembled ? axis.motor.ratedTorque + ' N·m' : '---' }}</span></div>
+              <div class="param-item"><span class="param-label">额定转速</span><span class="param-value" :class="{ placeholder: !axis.assembled }">{{ axis.assembled ? axis.motor.ratedSpeed + ' rpm' : '---' }}</span></div>
+              <div class="param-item"><span class="param-label">减速比</span><span class="param-value" :class="{ placeholder: !axis.assembled }">{{ axis.assembled ? '1:' + axis.motor.ratio : '---' }}</span></div>
+              <div class="param-item"><span class="param-label">转动惯量</span><span class="param-value" :class="{ placeholder: !axis.assembled }">{{ axis.assembled ? axis.motor.inertia + ' kg·m²' : '---' }}</span></div>
+              <div class="param-item"><span class="param-label">负载能力</span><span class="param-value" :class="{ placeholder: !axis.assembled }">{{ axis.assembled ? axis.motor.load + ' kg' : '---' }}</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="summary-section" :class="{ active: allAssembled }">
+          <div class="summary-title"><span class="dot"></span>整机性能汇总</div>
+          <div class="summary-grid">
+            <div class="summary-item"><div class="summary-item-label">总负载能力</div><div class="summary-item-value" :class="{ placeholder: !allAssembled }">{{ allAssembled ? totalLoad + ' kg' : '计算中...' }}</div></div>
+            <div class="summary-item"><div class="summary-item-label">整机自重</div><div class="summary-item-value" :class="{ placeholder: !allAssembled }">{{ allAssembled ? totalWeight + ' kg' : '计算中...' }}</div></div>
+            <div class="summary-item"><div class="summary-item-label">最大伸展半径</div><div class="summary-item-value" :class="{ placeholder: !allAssembled }">{{ allAssembled ? maxReach + ' mm' : '计算中...' }}</div></div>
+            <div class="summary-item"><div class="summary-item-label">重复定位精度</div><div class="summary-item-value" :class="{ placeholder: !allAssembled }">{{ allAssembled ? repeatability + ' mm' : '计算中...' }}</div></div>
+          </div>
+        </div>
+      </div>
+      <button class="mobile-toggle" @click="panelOpen = !panelOpen">
+        <svg v-if="!panelOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="canvas-container" ref="canvasContainer">
+        <div class="canvas-title"><h1>机械臂装配仿真系统</h1><p>ROBOT ARM ASSEMBLY SIMULATION</p></div>
+        <div class="axis-indicator"><div v-for="(axis, idx) in axes" :key="axis.key" class="axis-dot" :class="{ done: axis.assembled, active: currentAssembling === idx }" :title="axis.name"></div></div>
+        <div class="status-indicator"><div class="status-dot" :class="statusClass"></div><span class="status-text">{{ statusText }}</span></div>
+        <canvas id="three-canvas"></canvas>
+        <div id="label-renderer"></div>
+        <div class="control-bar">
+          <button class="ctrl-btn primary" @click="startAssembly" :disabled="isAssembling">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>开始装配</span>
+          </button>
+          <button class="ctrl-btn" @click="resetAssembly">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            <span>重置</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const { createApp, ref, computed, onMounted, onUnmounted, reactive, nextTick } = Vue;
+
+// 从localStorage读取选型数据，没有则使用默认示例
+function loadMotorData() {
+  try {
+    const saved = localStorage.getItem('assembly_motor_data');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data && data.axes && data.axes.length > 0) {
+        return data;
+      }
+    }
+  } catch(e) { console.warn('读取选型数据失败，使用默认数据', e); }
+  // 默认示例数据
+  return {
+    robotType: '六轴工业机械臂',
+    payload: 6,
+    reach: 900,
+    axes: [
+      { key: 'J1', name: '基座旋转轴', motor: { model: 'X4-400', ratedTorque: 1.27, ratedSpeed: 3000, inertia: 0.032, load: 50, ratio: 80, power: 0.4, diameter: 60, length: 80, weight: 1.2 } },
+      { key: 'J2', name: '大臂俯仰轴', motor: { model: 'X4-750', ratedTorque: 2.39, ratedSpeed: 3000, inertia: 0.068, load: 35, ratio: 100, power: 0.75, diameter: 80, length: 110, weight: 2.5 } },
+      { key: 'J3', name: '小臂摆动轴', motor: { model: 'X4-400', ratedTorque: 1.27, ratedSpeed: 3000, inertia: 0.032, load: 20, ratio: 60, power: 0.4, diameter: 60, length: 80, weight: 1.2 } },
+      { key: 'J4', name: '腕部翻转轴', motor: { model: 'X4-100', ratedTorque: 0.32, ratedSpeed: 3000, inertia: 0.008, load: 10, ratio: 50, power: 0.1, diameter: 40, length: 60, weight: 0.4 } },
+      { key: 'J5', name: '腕部摆动轴', motor: { model: 'X4-100', ratedTorque: 0.32, ratedSpeed: 3000, inertia: 0.008, load: 8, ratio: 50, power: 0.1, diameter: 40, length: 60, weight: 0.4 } },
+      { key: 'J6', name: '末端法兰轴', motor: { model: 'X4-50', ratedTorque: 0.16, ratedSpeed: 5000, inertia: 0.004, load: 6, ratio: 30, power: 0.05, diameter: 35, length: 50, weight: 0.25 } }
+    ]
+  };
+}
+
+const MOTOR_SELECTION_DATA = loadMotorData();
+
+const ARM_DIMENSIONS = {
+  baseRadius: 80, baseHeight: 40, J1Height: 50, J2ShoulderOffset: 0,
+  upperArmLength: 220, lowerArmLength: 180, wristLength: 80, flangeLength: 40, armWidth: 36
+};
+
+createApp({
+  setup() {
+    const canvasContainer = ref(null);
+    const panelOpen = ref(false);
+    const isAssembling = ref(false);
+    const currentAssembling = ref(-1);
+    const isRunning = ref(false);
+    const robotName = ref(MOTOR_SELECTION_DATA.robotType || '六轴机械臂');
+
+    const axes = reactive(MOTOR_SELECTION_DATA.axes.map(a => ({ ...a, assembled: false })));
+    const axisCount = axes.length;
+
+    const assembledCount = computed(() => axes.filter(a => a.assembled).length);
+    const progressPercent = computed(() => (assembledCount.value / axisCount) * 100);
+    const allAssembled = computed(() => assembledCount.value === axisCount);
+    const totalLoad = computed(() => { if (!allAssembled.value) return 0; return axes[axisCount-1].motor.load; });
+    const totalWeight = computed(() => { if (!allAssembled.value) return 0; const mw = axes.reduce((s,a) => s + a.motor.weight, 0); return (mw * 4).toFixed(1); });
+    const maxReach = computed(() => { if (!allAssembled.value) return 0; return ARM_DIMENSIONS.upperArmLength + ARM_DIMENSIONS.lowerArmLength + ARM_DIMENSIONS.wristLength + ARM_DIMENSIONS.flangeLength; });
+    const repeatability = computed(() => { if (!allAssembled.value) return 0; return '±0.03'; });
+    const statusClass = computed(() => { if (isAssembling.value) return 'assembling'; if (isRunning.value) return 'running'; return 'idle'; });
+    const statusText = computed(() => { if (isAssembling.value) return '装配进行中'; if (isRunning.value) return '仿真运行中'; return '待机状态'; });
+
+    let scene, camera, renderer, labelRenderer, controls;
+    let armGroup, jointGroups = [], animationId, clock;
+    let simTime = 0, simulating = false;
+
+    function createMetalMaterial(color, opts = {}) {
+      return new THREE.MeshPhongMaterial({ color, shininess: opts.shininess !== undefined ? opts.shininess : 80, specular: opts.specular !== undefined ? new THREE.Color(opts.specular) : new THREE.Color(0x445566), emissive: opts.emissive || 0x000000, emissiveIntensity: opts.emissiveIntensity || 0, flatShading: false });
+    }
+
+    function createBase() {
+      const baseGroup = new THREE.Group();
+      const baseGeo = new THREE.CylinderGeometry(ARM_DIMENSIONS.baseRadius, ARM_DIMENSIONS.baseRadius + 10, 15, 32);
+      const baseMesh = new THREE.Mesh(baseGeo, createMetalMaterial(0x2d3748, { shininess: 60 }));
+      baseMesh.position.y = 7.5; baseMesh.castShadow = true; baseMesh.receiveShadow = true; baseGroup.add(baseMesh);
+      const ringGeo = new THREE.TorusGeometry(ARM_DIMENSIONS.baseRadius - 5, 2, 8, 32);
+      const ringMesh = new THREE.Mesh(ringGeo, createMetalMaterial(0x64748b, { shininess: 100 }));
+      ringMesh.rotation.x = Math.PI / 2; ringMesh.position.y = 15; baseGroup.add(ringMesh);
+      const pillarGeo = new THREE.CylinderGeometry(ARM_DIMENSIONS.baseRadius - 10, ARM_DIMENSIONS.baseRadius - 5, ARM_DIMENSIONS.baseHeight - 15, 32);
+      const pillarMesh = new THREE.Mesh(pillarGeo, createMetalMaterial(0x3b4252, { shininess: 90, specular: 0x667788 }));
+      pillarMesh.position.y = 15 + (ARM_DIMENSIONS.baseHeight - 15) / 2; pillarMesh.castShadow = true; baseGroup.add(pillarMesh);
+      const capGeo = new THREE.CylinderGeometry(ARM_DIMENSIONS.baseRadius - 3, ARM_DIMENSIONS.baseRadius - 10, 8, 32);
+      const capMesh = new THREE.Mesh(capGeo, createMetalMaterial(0x475569, { shininess: 120, specular: 0x8899aa }));
+      capMesh.position.y = ARM_DIMENSIONS.baseHeight - 4; capMesh.castShadow = true; baseGroup.add(capMesh);
+      const ledGeo = new THREE.SphereGeometry(3, 12, 12);
+      const ledMesh = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+      ledMesh.position.set(ARM_DIMENSIONS.baseRadius - 20, 20, ARM_DIMENSIONS.baseRadius - 15); baseGroup.add(ledMesh);
+      return baseGroup;
+    }
+
+    function createMotorMesh(motorData, axisKey) {
+      const motorGroup = new THREE.Group();
+      const d = motorData.diameter * 0.8, l = motorData.length * 0.7;
+      const bodyGeo = new THREE.CylinderGeometry(d/2, d/2, l, 24);
+      const bodyMesh = new THREE.Mesh(bodyGeo, createMetalMaterial(0x4a5568, { shininess: 70, specular: 0x667788 }));
+      bodyMesh.castShadow = true; motorGroup.add(bodyMesh);
+      const frontGeo = new THREE.CylinderGeometry(d/2 + 2, d/2, 6, 24);
+      const frontMesh = new THREE.Mesh(frontGeo, createMetalMaterial(0x718096, { shininess: 120, specular: 0xaabbcc }));
+      frontMesh.position.y = l/2 + 3; frontMesh.castShadow = true; motorGroup.add(frontMesh);
+      const shaftGeo = new THREE.CylinderGeometry(d/6, d/6, 10, 16);
+      const shaftMesh = new THREE.Mesh(shaftGeo, createMetalMaterial(0xcbd5e1, { shininess: 200, specular: 0xffffff }));
+      shaftMesh.position.y = l/2 + 8; shaftMesh.castShadow = true; motorGroup.add(shaftMesh);
+      for (let i = 0; i < 3; i++) {
+        const finGeo = new THREE.TorusGeometry(d/2 - 1, 1.5, 8, 24);
+        const finMesh = new THREE.Mesh(finGeo, createMetalMaterial(0x2d3748, { shininess: 30 }));
+        finMesh.rotation.x = Math.PI / 2; finMesh.position.y = -l/4 + (i * l)/3; motorGroup.add(finMesh);
+      }
+      return motorGroup;
+    }
+
+    function createArmSegment(length, width, color = 0x4a5568) {
+      const group = new THREE.Group();
+      const r = width / 2;
+      const bodyGeo = new THREE.BoxGeometry(width, length, width);
+      const bodyMesh = new THREE.Mesh(bodyGeo, createMetalMaterial(color, { shininess: 60, specular: 0x556677 }));
+      bodyMesh.castShadow = true; bodyMesh.receiveShadow = true; group.add(bodyMesh);
+      const sideGeo = new THREE.CylinderGeometry(r, r, length, 16, 1, false, 0, Math.PI);
+      const sideMat = createMetalMaterial(color, { shininess: 70, specular: 0x667788 });
+      const sideLeft = new THREE.Mesh(sideGeo, sideMat); sideLeft.rotation.z = Math.PI/2; sideLeft.position.z = -width/2; sideLeft.castShadow = true; group.add(sideLeft);
+      const sideRight = new THREE.Mesh(sideGeo, sideMat); sideRight.rotation.z = -Math.PI/2; sideRight.position.z = width/2; sideRight.castShadow = true; group.add(sideRight);
+      const lineGeo = new THREE.BoxGeometry(width/2, length - 10, 2);
+      const line1 = new THREE.Mesh(lineGeo, new THREE.MeshBasicMaterial({ color: 0x64748b }));
+      line1.position.z = width/2 + 1; group.add(line1);
+      return group;
+    }
+
+    function createJointHousing(diameter, color = 0x3b4252) {
+      const group = new THREE.Group();
+      const geo = new THREE.SphereGeometry(diameter/2, 24, 16);
+      const mesh = new THREE.Mesh(geo, createMetalMaterial(color, { shininess: 80, specular: 0x667788 }));
+      mesh.castShadow = true; group.add(mesh);
+      const ringGeo = new THREE.TorusGeometry(diameter/2, 3, 8, 24);
+      const ring = new THREE.Mesh(ringGeo, createMetalMaterial(0x718096, { shininess: 120, specular: 0xaabbcc }));
+      ring.rotation.x = Math.PI / 2; group.add(ring);
+      return group;
+    }
+
+    function createEndEffector() {
+      const group = new THREE.Group();
+      const flangeGeo = new THREE.CylinderGeometry(20, 18, 10, 20);
+      const flange = new THREE.Mesh(flangeGeo, createMetalMaterial(0x94a3b8, { shininess: 150, specular: 0xccccdd }));
+      flange.castShadow = true; group.add(flange);
+      const pinGeo = new THREE.CylinderGeometry(5, 3, 20, 12);
+      const pin = new THREE.Mesh(pinGeo, createMetalMaterial(0xcbd5e1, { shininess: 200, specular: 0xffffff }));
+      pin.position.y = 15; pin.castShadow = true; group.add(pin);
+      for (let i = 0; i < 6; i++) {
+        const holeGeo = new THREE.CylinderGeometry(2, 2, 10, 8);
+        const hole = new THREE.Mesh(holeGeo, new THREE.MeshBasicMaterial({ color: 0x1a202c }));
+        const angle = (i / 6) * Math.PI * 2;
+        hole.position.set(Math.cos(angle) * 12, 0, Math.sin(angle) * 12); group.add(hole);
+      }
+      return group;
+    }
+
+    function buildArmHierarchy() {
+      armGroup = new THREE.Group(); armGroup.position.y = 0;
+      const base = createBase(); armGroup.add(base);
+      const motorData = MOTOR_SELECTION_DATA.axes;
+
+      // J1
+      const j1Group = new THREE.Group(); j1Group.position.y = ARM_DIMENSIONS.baseHeight; j1Group.visible = false;
+      const j1Motor = createMotorMesh(motorData[0]?.motor || motorData[0], 'J1'); j1Motor.rotation.x = Math.PI/2; j1Motor.position.y = 20; j1Group.add(j1Motor);
+      const j1Housing = createJointHousing(60, 0x334155); j1Housing.position.y = 45; j1Housing.scale.set(1, 0.6, 1); j1Group.add(j1Housing);
+      // J2
+      const j2Group = new THREE.Group(); j2Group.position.y = 70; j2Group.visible = false;
+      const j2Motor = createMotorMesh(motorData[1]?.motor || motorData[1], 'J2'); j2Motor.rotation.z = Math.PI/2; j2Motor.position.z = 25; j2Group.add(j2Motor);
+      const upperArm = createArmSegment(ARM_DIMENSIONS.upperArmLength, ARM_DIMENSIONS.armWidth, 0x475569); upperArm.position.y = ARM_DIMENSIONS.upperArmLength/2 + 10; j2Group.add(upperArm);
+      const j2Housing = createJointHousing(50, 0x334155); j2Housing.position.y = 10; j2Group.add(j2Housing);
+      // J3
+      const j3Group = new THREE.Group(); j3Group.position.y = ARM_DIMENSIONS.upperArmLength + 10; j3Group.visible = false;
+      const j3Motor = createMotorMesh(motorData[2]?.motor || motorData[2], 'J3'); j3Motor.rotation.z = -Math.PI/2; j3Motor.position.z = -22; j3Group.add(j3Motor);
+      const j3Housing = createJointHousing(44, 0x334155); j3Group.add(j3Housing);
+      const lowerArm = createArmSegment(ARM_DIMENSIONS.lowerArmLength, ARM_DIMENSIONS.armWidth - 6, 0x4a5568); lowerArm.position.y = ARM_DIMENSIONS.lowerArmLength/2 + 5; j3Group.add(lowerArm);
+      // J4
+      const j4Group = new THREE.Group(); j4Group.position.y = ARM_DIMENSIONS.lowerArmLength + 5; j4Group.visible = false;
+      const j4Motor = createMotorMesh(motorData[3]?.motor || motorData[3], 'J4'); j4Motor.rotation.x = Math.PI/2; j4Motor.position.y = 15; j4Group.add(j4Motor);
+      const wristBaseGeo = new THREE.CylinderGeometry(22, 24, 25, 20);
+      const wristBase = new THREE.Mesh(wristBaseGeo, createMetalMaterial(0x3b4252, { shininess: 80 })); wristBase.position.y = 12; wristBase.castShadow = true; j4Group.add(wristBase);
+      // J5
+      const j5Group = new THREE.Group(); j5Group.position.y = 30; j5Group.visible = false;
+      const j5Motor = createMotorMesh(motorData[4]?.motor || motorData[4], 'J5'); j5Motor.rotation.z = Math.PI/2; j5Motor.position.z = 18; j5Group.add(j5Motor);
+      const j5Housing = createJointHousing(36, 0x334155); j5Housing.scale.set(1, 0.8, 1); j5Group.add(j5Housing);
+      const foreArmGeo = new THREE.CylinderGeometry(14, 16, ARM_DIMENSIONS.wristLength, 16);
+      const foreArm = new THREE.Mesh(foreArmGeo, createMetalMaterial(0x475569, { shininess: 70 })); foreArm.position.y = ARM_DIMENSIONS.wristLength/2; foreArm.castShadow = true; j5Group.add(foreArm);
+      // J6
+      const j6Group = new THREE.Group(); j6Group.position.y = ARM_DIMENSIONS.wristLength; j6Group.visible = false;
+      const j6Motor = createMotorMesh(motorData[5]?.motor || motorData[5], 'J6'); j6Motor.rotation.x = Math.PI/2; j6Motor.position.y = 15; j6Group.add(j6Motor);
+      const endEff = createEndEffector(); endEff.position.y = 35; j6Group.add(endEff);
+
+      j5Group.add(j6Group); j4Group.add(j5Group); j3Group.add(j4Group); j2Group.add(j3Group); j1Group.add(j2Group); base.add(j1Group);
+      jointGroups = [j1Group, j2Group, j3Group, j4Group, j5Group, j6Group];
+      scene.add(armGroup);
+    }
+
+    const labelElements = [];
+    function createLabelForAxis(axisIndex) {
+      const axisData = MOTOR_SELECTION_DATA.axes[axisIndex];
+      const motor = axisData.motor || axisData;
+      const div = document.createElement('div'); div.className = 'motor-label'; div.style.display = 'none';
+      div.innerHTML = `<div class="motor-label-header"><span class="motor-label-axis">${axisData.key}</span><span class="motor-label-model">${motor.model}</span></div><div class="motor-label-params"><div class="motor-label-param"><span class="lbl">扭矩</span><span class="val">${motor.ratedTorque} N·m</span></div><div class="motor-label-param"><span class="lbl">转速</span><span class="val">${motor.ratedSpeed} rpm</span></div><div class="motor-label-param"><span class="lbl">减速比</span><span class="val">1:${motor.ratio}</span></div><div class="motor-label-param"><span class="lbl">负载</span><span class="val">${motor.load} kg</span></div></div>`;
+      const label = new THREE.CSS2DObject(div); label.name = `label-${axisData.key}`;
+      return { label, element: div };
+    }
+
+    function attachLabelToJoint(axisIndex) {
+      const joint = jointGroups[axisIndex];
+      const { label, element } = labelElements[axisIndex];
+      const anchors = [new THREE.Vector3(60,50,0), new THREE.Vector3(50,30,50), new THREE.Vector3(45,50,-45), new THREE.Vector3(40,30,0), new THREE.Vector3(35,25,35), new THREE.Vector3(30,40,0)];
+      label.position.copy(anchors[axisIndex] || anchors[0]);
+      joint.add(label); element.style.display = 'block';
+    }
+
+    function initScene() {
+      const canvas = document.getElementById('three-canvas');
+      const container = canvasContainer.value;
+      const width = container.clientWidth, height = container.clientHeight;
+      scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0a0d12, 300, 800);
+      camera = new THREE.PerspectiveCamera(45, width/height, 0.1, 2000); camera.position.set(350, 250, 350); camera.lookAt(0, 120, 0);
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); renderer.setSize(width, height);
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.setClearColor(0x000000, 0);
+      labelRenderer = new THREE.CSS2DRenderer(); labelRenderer.setSize(width, height);
+      const labelDom = labelRenderer.domElement; labelDom.style.position = 'absolute'; labelDom.style.top = '0'; labelDom.style.left = '0'; labelDom.style.pointerEvents = 'none';
+      document.getElementById('label-renderer').appendChild(labelDom);
+      controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = true; controls.dampingFactor = 0.05; controls.target.set(0, 120, 0); controls.minDistance = 150; controls.maxDistance = 700; controls.maxPolarAngle = Math.PI * 0.85;
+      scene.add(new THREE.AmbientLight(0x404050, 0.4));
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1); mainLight.position.set(200, 300, 200); mainLight.castShadow = true; mainLight.shadow.mapSize.width = 2048; mainLight.shadow.mapSize.height = 2048; scene.add(mainLight);
+      const fillLight = new THREE.DirectionalLight(0x5678a8, 0.4); fillLight.position.set(-150, 100, -150); scene.add(fillLight);
+      const rimLight = new THREE.DirectionalLight(0x3b82f6, 0.3); rimLight.position.set(0, 150, -200); scene.add(rimLight);
+      const groundGeo = new THREE.CircleGeometry(400, 64); const ground = new THREE.Mesh(groundGeo, new THREE.MeshBasicMaterial({ color: 0x111622, transparent: true, opacity: 0.8 })); ground.rotation.x = -Math.PI/2; ground.position.y = -0.5; ground.receiveShadow = true; scene.add(ground);
+      const gridHelper = new THREE.GridHelper(500, 25, 0x1e293b, 0x111827); scene.add(gridHelper);
+      buildArmHierarchy();
+      for (let i = 0; i < Math.min(6, MOTOR_SELECTION_DATA.axes.length); i++) { labelElements.push(createLabelForAxis(i)); }
+      clock = new THREE.Clock(); animate();
+    }
+
+    function animate() {
+      animationId = requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if (window.TWEEN) TWEEN.update();
+      if (simulating) { simTime += delta; runSimulation(simTime); }
+      controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera);
+    }
+
+    function runSimulation(t) {
+      if (jointGroups[0]) jointGroups[0].rotation.y = Math.sin(t * 0.4) * 0.8;
+      if (jointGroups[1]) jointGroups[1].rotation.z = Math.sin(t * 0.5) * 0.5 + 0.2;
+      if (jointGroups[2]) jointGroups[2].rotation.z = Math.sin(t * 0.6 + 1) * 0.4 - 0.3;
+      if (jointGroups[3]) jointGroups[3].rotation.y = t * 0.5;
+      if (jointGroups[4]) jointGroups[4].rotation.z = Math.sin(t * 0.7 + 2) * 0.5;
+      if (jointGroups[5]) jointGroups[5].rotation.y = t * 1.2;
+    }
+
+    function startAssembly() {
+      if (isAssembling.value) return;
+      if (allAssembled.value) { resetAssembly(); setTimeout(() => doAssembly(), 500); return; }
+      doAssembly();
+    }
+
+    function doAssembly() {
+      isAssembling.value = true; isRunning.value = false; simulating = false;
+      jointGroups.forEach(g => { g.visible = false; g.scale.set(1,1,1); });
+      assembleAxis(0);
+    }
+
+    function assembleAxis(index) {
+      if (index >= Math.min(6, MOTOR_SELECTION_DATA.axes.length)) {
+        isAssembling.value = false; currentAssembling.value = -1; isRunning.value = true; simulating = true; return;
+      }
+      currentAssembling.value = index;
+      const joint = jointGroups[index];
+      joint.visible = true; joint.scale.set(0.01, 0.01, 0.01);
+      const startY = joint.position.y; joint.position.y += 100; joint.rotation.y = Math.PI * 2;
+      new TWEEN.Tween({ s: 0.01, y: joint.position.y, r: Math.PI * 2 })
+        .to({ s: 1, y: startY, r: 0 }, 900)
+        .easing(TWEEN.Easing.Elastic.Out)
+        .onUpdate(obj => { joint.scale.set(obj.s, obj.s, obj.s); joint.position.y = obj.y; joint.rotation.y = obj.r; })
+        .onComplete(() => { axes[index].assembled = true; attachLabelToJoint(index); setTimeout(() => assembleAxis(index + 1), 600); })
+        .start();
+    }
+
+    function resetAssembly() {
+      if (window.TWEEN) TWEEN.removeAll();
+      isAssembling.value = false; isRunning.value = false; simulating = false; currentAssembling.value = -1; simTime = 0;
+      axes.forEach(a => { a.assembled = false; });
+      if (jointGroups && jointGroups.length) {
+        jointGroups.forEach((g, i) => {
+          g.visible = false; g.scale.set(1,1,1); g.rotation.set(0,0,0);
+          const label = g.getObjectByName(`label-${MOTOR_SELECTION_DATA.axes[i].key}`);
+          if (label) { g.remove(label); if (label.element) label.element.style.display = 'none'; }
+        });
+      }
+    }
+
+    function onResize() {
+      if (!canvasContainer.value || !renderer || !camera || !labelRenderer) return;
+      const width = canvasContainer.value.clientWidth, height = canvasContainer.value.clientHeight;
+      camera.aspect = width / height; camera.updateProjectionMatrix();
+      renderer.setSize(width, height); labelRenderer.setSize(width, height);
+    }
+
+    onMounted(() => {
+      nextTick(() => {
+        initScene();
+        window.addEventListener('resize', onResize);
+        // 检查URL参数，自动开始装配
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('autostart') === '1') {
+          setTimeout(() => {
+            startAssembly();
+          }, 1000);
+        }
+      });
+    });
+    onUnmounted(() => { window.removeEventListener('resize', onResize); if (animationId) cancelAnimationFrame(animationId); if (renderer) renderer.dispose(); });
+
+    return { canvasContainer, panelOpen, axes, assembledCount, progressPercent, allAssembled, totalLoad, totalWeight, maxReach, repeatability, isAssembling, currentAssembling, isRunning, statusClass, statusText, robotName, startAssembly, resetAssembly };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

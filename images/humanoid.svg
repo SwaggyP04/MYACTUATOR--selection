@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" width="200" height="280">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a90d9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2c5f8a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="limbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5aa0e9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3a70a0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 头部 -->
+  <circle cx="100" cy="35" r="25" fill="url(#bodyGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <!-- 眼睛 -->
+  <circle cx="90" cy="32" r="4" fill="#00d4ff"/>
+  <circle cx="110" cy="32" r="4" fill="#00d4ff"/>
+  <!-- 颈部 -->
+  <rect x="93" y="58" width="14" height="12" fill="#3a70a0" stroke="#1a3a5c" stroke-width="1"/>
+  <!-- 躯干 -->
+  <rect x="65" y="70" width="70" height="90" rx="8" fill="url(#bodyGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <!-- 胸口指示灯 -->
+  <circle cx="100" cy="100" r="8" fill="#00d4ff" opacity="0.8"/>
+  <circle cx="100" cy="100" r="4" fill="#ffffff"/>
+  <!-- 左臂 -->
+  <rect x="40" y="75" width="20" height="60" rx="6" fill="url(#limbGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <circle cx="50" cy="140" r="10" fill="#3a70a0" stroke="#1a3a5c" stroke-width="2"/>
+  <rect x="42" y="145" width="16" height="45" rx="5" fill="url(#limbGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <!-- 右臂 -->
+  <rect x="140" y="75" width="20" height="60" rx="6" fill="url(#limbGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <circle cx="150" cy="140" r="10" fill="#3a70a0" stroke="#1a3a5c" stroke-width="2"/>
+  <rect x="142" y="145" width="16" height="45" rx="5" fill="url(#limbGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <!-- 左腿 -->
+  <rect x="70" y="160" width="22" height="55" rx="6" fill="url(#limbGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <circle cx="81" cy="220" r="10" fill="#3a70a0" stroke="#1a3a5c" stroke-width="2"/>
+  <rect x="72" y="225" width="18" height="45" rx="5" fill="url(#limbGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <!-- 右腿 -->
+  <rect x="108" y="160" width="22" height="55" rx="6" fill="url(#limbGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <circle cx="119" cy="220" r="10" fill="#3a70a0" stroke="#1a3a5c" stroke-width="2"/>
+  <rect x="110" y="225" width="18" height="45" rx="5" fill="url(#limbGrad)" stroke="#1a3a5c" stroke-width="2"/>
+  <!-- 关节标注 -->
+  <text x="100" y="275" text-anchor="middle" fill="#8899aa" font-size="10">示意图 · 原创设计</text>
+</svg>

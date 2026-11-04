@@ -212,5 +212,65 @@
     "answer": "**关于机器人系统方案推荐：**\n\n本系统提供\"方案推荐\"功能，可根据您的需求自动生成完整的机器人关节选型方案。\n\n**支持的机器人类型：**\n1. **人形机器人**：输入身高、重量、负载、行走速度，自动生成全身30+关节方案\n2. **机械臂**：输入末端负载、臂展、轴数，自动生成6/7轴关节方案\n3. **四足机器狗**：输入重量、负载、速度，自动生成12自由度腿部方案\n4. **夹爪/灵巧手**：输入夹持力、抓取重量，自动生成末端执行器方案\n\n**方案包含内容：**\n- 总自由度、关节数量、估算总功率\n- 每个关节的负载、额定扭矩、峰值扭矩\n- 每个关节推荐前3款脉塔电机\n- 满足状态判断（精确满足/满足/满足但过配）\n- 推荐电机BOM清单（型号、数量、参数汇总）\n- 背隙和重复定位精度参数\n\n**精度筛选：**\n- 可设置背隙要求（弧分）和重复定位精度要求（度）\n- 系统会优先推荐符合精度要求的产品\n- 例如要求背隙<1弧分，会优先推荐谐波模组\n\n使用方法：点击顶部\"方案推荐\"标签，选择机器人类型，输入参数，点击\"生成方案\"。",
     "sort_order": 150,
     "updated_at": "2026-11-04"
+  },
+  {
+    "id": 16,
+    "question": "更新 ESI/XML 文件的教程视频在哪里？",
+    "keywords": [
+      "esi",
+      "xml",
+      "esi文件",
+      "xml文件",
+      "更新esi",
+      "教程",
+      "视频",
+      "esi更新",
+      "ethercat"
+    ],
+    "answer": "支持 → 教程 → \"ESI/XML 更新说明\"。当主站中的 ESI 文件与执行器型号或固件版本不一致时使用（参见 排障 → 无通讯 → EtherCAT）。",
+    "sort_order": 1016,
+    "updated_at": "2026-10-30",
+    "source": "MyActuator WorkBench · Support FAQ",
+    "category": "EtherCAT"
+  },
+  {
+    "id": 17,
+    "question": "从站无法进入 OP，主站报 DC（分布式时钟）错误，应检查什么？",
+    "keywords": [
+      "dc",
+      "分布式时钟",
+      "distributed clock",
+      "进不了op",
+      "无法进op",
+      "op错误",
+      "同步",
+      "ethercat"
+    ],
+    "answer": "确认主站确实为该从站启用了 DC（并非所有主站都会自动启用），并且周期时间是执行器支持的值。即使接线和 PDO 映射都正确，DC 不匹配也常会阻止 SafeOp→OP 切换。",
+    "sort_order": 1017,
+    "updated_at": "2026-10-30",
+    "source": "MyActuator WorkBench · Support FAQ",
+    "category": "EtherCAT"
+  },
+  {
+    "id": 18,
+    "question": "从站卡在 PreOp/SafeOp，通常是什么原因？",
+    "keywords": [
+      "preop",
+      "safeop",
+      "pdo",
+      "pdo映射",
+      "卡在",
+      "模式不匹配",
+      "csp",
+      "csv",
+      "pvt",
+      "ethercat"
+    ],
+    "answer": "通常是 PDO 映射与当前模式（如 CSP、CSV、PVT）不匹配，或 ESI 文件对应的型号/固件不同。加载完全对应的 ESI 文件并重新扫描，然后针对已配置的模式检查 PDO 分配。",
+    "sort_order": 1018,
+    "updated_at": "2026-10-30",
+    "source": "MyActuator WorkBench · Support FAQ",
+    "category": "EtherCAT"
   }
 ]
