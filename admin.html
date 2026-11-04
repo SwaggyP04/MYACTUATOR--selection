@@ -214,12 +214,12 @@ const CFG = {
   // ═══════════════════════════════════════════════════════════
   //  访问密码（第一道门）
   //  gateHash = SHA-256(明文密码) 的十六进制
-  //  默认密码：MyActuator@2026
+  //  默认密码：crabcake
   //  改密码方法见文末说明，或直接用浏览器控制台算：
   //    crypto.subtle.digest('SHA-256', new TextEncoder().encode('新密码'))
   //      .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
   // ═══════════════════════════════════════════════════════════
-  gateHash: '48a1eea20b20295f7bba5f4461853ee330d014a1a759f67852fcc0b9d5b44487',
+  gateHash: '39ea97c014c2e055bff1e93bd9e1e7835cc213fe7be3a23ded4ca48f9bab1a71',
 
   // 密码验证后多久内免再输（分钟）
   gateMinutes: 120,
