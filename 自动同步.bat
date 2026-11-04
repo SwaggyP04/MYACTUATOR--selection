@@ -63,9 +63,16 @@ goto loop
     goto :eof
   )
 
-  git push origin main >nul 2>&1
-  if errorlevel 1 (
-    echo   [失败] 推送出错
+  set PUSH_OK=0
+  for /l %%n in (1,1,3) do (
+    if !PUSH_OK!==0 (
+      git push origin main >nul 2>&1
+      if not errorlevel 1 set PUSH_OK=1
+      if !PUSH_OK!==0 timeout /t 4 /nobreak >nul
+    )
+  )
+  if !PUSH_OK!==0 (
+    echo   [失败] 推送出错（已重试 3 次）
     goto :eof
   )
 

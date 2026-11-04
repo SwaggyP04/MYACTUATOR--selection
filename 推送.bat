@@ -61,10 +61,23 @@ if errorlevel 1 (
   exit /b 1
 )
 
-git push origin main
+REM GitHub 偶尔返回 500，重试最多 3 次
+set PUSH_OK=0
+for /l %%n in (1,1,3) do (
+  if !PUSH_OK!==0 (
+    echo   推送尝试 %%n/3...
+    git push origin main
+    if not errorlevel 1 (
+      set PUSH_OK=1
+    ) else (
+      echo   本次失败，5 秒后重试...
+      timeout /t 5 /nobreak >nul
+    )
+  )
+)
 
-if errorlevel 1 (
-  echo   [错误] 推送失败，检查网络或登录状态
+if !PUSH_OK!==0 (
+  echo   [错误] 推送失败（已重试 3 次），检查网络或登录状态
   pause
   exit /b 1
 )
