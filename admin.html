@@ -100,10 +100,42 @@
 <body>
 <div class="wrap">
 
-<!-- ══════════════ 登录 ══════════════ -->
+<!-- ══════════════ 第一道门：访问密码 ══════════════ -->
+<div id="gate" class="card" style="display:none">
+  <h1>🔒 受保护页面</h1>
+  <div class="sub">FAQ 管理后台 · 需要访问密码</div>
+
+  <div style="margin-top:24px">
+    <label>访问密码</label>
+    <input type="password" id="gateInput" placeholder="请输入访问密码"
+           onkeydown="if(event.key==='Enter')checkGate()" autocomplete="current-password">
+    <div class="hint">输入后 2 小时内无需重复输入</div>
+  </div>
+
+  <div class="row" style="margin-top:16px">
+    <button onclick="checkGate()">进入</button>
+    <span id="gateMsg" class="meta"></span>
+  </div>
+
+  <div class="help" style="margin-top:22px">
+    <b>这个页面需要两道验证：</b>
+    <ol>
+      <li><b>访问密码</b> —— 防止无关人员进入</li>
+      <li><b>GitHub 账号授权</b> —— 仅限仓库协作者，由 GitHub 服务端判定</li>
+    </ol>
+    <br>
+    没有仓库写权限的账号，即使知道密码也改不了任何内容。
+  </div>
+</div>
+
+<!-- ══════════════ 第二道门：GitHub 令牌 ══════════════ -->
 <div id="login" class="card" style="display:none">
   <h1>FAQ 管理后台</h1>
   <div class="sub">脉塔电机选型系统 · 仅限授权用户</div>
+
+  <div id="gatePassedBadge" style="margin-top:12px;padding:10px 14px;background:#0f2f1a;border:1px solid #238636;border-radius:6px;font-size:13px;color:#7ee787;">
+    ✔ 访问密码已验证 —— 下一步：GitHub 账号授权
+  </div>
 
   <div class="help">
     <b>如何获取访问令牌（只需做一次）：</b>
@@ -143,6 +175,7 @@
 <div id="app" style="display:none">
   <h1>FAQ 管理后台</h1>
   <div class="sub" id="repoInfo"></div>
+  <div id="accountInfo" style="margin-top:6px;font-size:13px;color:#7ee787;"></div>
 
   <div id="status"></div>
 
@@ -153,7 +186,8 @@
       <button class="grow" style="visibility:hidden"></button>
       <span class="meta" id="dirtyInfo"></span>
       <button id="saveBtn" onclick="saveToGitHub()" disabled>保存到 GitHub</button>
-      <button class="sec" onclick="logout()">退出</button>
+      <button class="sec" onclick="logout()" title="仅退出登录，保留访问密码">退出登录</button>
+      <button class="sec" onclick="logoutAll()" title="同时清除访问密码">完全退出</button>
     </div>
   </div>
 
@@ -175,13 +209,38 @@ const CFG = {
   owner:  'SwaggyP04',
   repo:   'MYACTUATOR--selection',
   branch: 'main',
-  path:   'data/faq.json'
+  path:   'data/faq.json',
+
+  // ═══════════════════════════════════════════════════════════
+  //  访问密码（第一道门）
+  //  gateHash = SHA-256(明文密码) 的十六进制
+  //  默认密码：MyActuator@2026
+  //  改密码方法见文末说明，或直接用浏览器控制台算：
+  //    crypto.subtle.digest('SHA-256', new TextEncoder().encode('新密码'))
+  //      .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+  // ═══════════════════════════════════════════════════════════
+  gateHash: '48a1eea20b20295f7bba5f4461853ee330d014a1a759f67852fcc0b9d5b44487',
+
+  // 密码验证后多久内免再输（分钟）
+  gateMinutes: 120,
+
+  // ═══════════════════════════════════════════════════════════
+  //  授权名单（第二道门，GitHub 账号白名单）
+  //  · 留空 [] = 任何对仓库有写权限的协作者都能进
+  //  · 填写 = 必须是列表里的账号且同时有写权限
+  //  例：['SwaggyP04', 'colleague_name']
+  // ═══════════════════════════════════════════════════════════
+  allowedUsers: [],
+
+  // 是否强制要求「有仓库写权限」（强烈建议 true）
+  requireWrite: true
 };
 
 const LS_KEY = 'faq_admin_token';
 
 let state = {
   token: '',
+  login: '',        // GitHub 登录名
   sha: null,        // 当前文件的 blob sha，更新时必须带上
   faq: [],          // 当前内存里的 FAQ
   dirty: false,     // 是否有未保存改动
@@ -240,13 +299,146 @@ function markDirty(v) {
 // ═══════════════════════════════════════════════════════════════
 //  登录
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  第一道门：访问密码
+// ═══════════════════════════════════════════════════════════════
+const GATE_KEY = 'faq_gate_until';
+
+async function sha256hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function gateValid() {
+  const until = Number(localStorage.getItem(GATE_KEY) || 0);
+  return Date.now() < until;
+}
+
+async function checkGate() {
+  const input = document.getElementById('gateInput');
+  const msg = document.getElementById('gateMsg');
+  const pwd = input.value;
+  if (!pwd) { msg.textContent = '请输入密码'; return; }
+
+  msg.textContent = '校验中…';
+  let hex;
+  try {
+    hex = await sha256hex(pwd);
+  } catch (e) {
+    msg.textContent = '✘ 浏览器不支持 Web Crypto（请用 https 或 localhost 打开）';
+    return;
+  }
+
+  if (hex !== CFG.gateHash) {
+    msg.textContent = '✘ 密码错误';
+    input.value = '';
+    input.focus();
+    return;
+  }
+
+  localStorage.setItem(GATE_KEY, String(Date.now() + CFG.gateMinutes * 60000));
+  input.value = '';
+  showLoginScreen();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  启动流程：密码门 → 令牌门 → 主体
+// ═══════════════════════════════════════════════════════════════
 function init() {
+  if (!gateValid()) {
+    document.getElementById('gate').style.display = 'block';
+    document.getElementById('gateInput')?.focus();
+    return;
+  }
+  showLoginScreen();
+}
+
+function showLoginScreen() {
+  document.getElementById('gate').style.display = 'none';
   const saved = localStorage.getItem(LS_KEY);
   if (saved) {
     state.token = saved;
-    enterApp();
+    // 有缓存令牌也要重新校验协作者身份
+    verifyIdentity(saved, { silent: true });
   } else {
     document.getElementById('login').style.display = 'block';
+    document.getElementById('tokenInput')?.focus();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  第二道门：GitHub 账号 + 协作者权限校验
+// ═══════════════════════════════════════════════════════════════
+async function verifyIdentity(token, opts = {}) {
+  const silent = !!opts.silent;
+  const msgEl = document.getElementById('loginMsg');
+  const setMsg = (t) => { if (msgEl && !silent) msgEl.textContent = t; };
+
+  state.token = token;
+  setMsg('正在识别 GitHub 账号…');
+
+  try {
+    // ① 令牌有效？拿到登录名
+    const ur = await fetch('https://api.github.com/user', { headers: authHeaders() });
+    if (ur.status === 401) throw new Error('令牌无效或已过期，请重新生成');
+    if (!ur.ok) throw new Error('无法读取 GitHub 账号（HTTP ' + ur.status + '）');
+    const me = await ur.json();
+    const login = me.login;
+    state.login = login;
+
+    // ② 白名单校验（如果配了）
+    if (Array.isArray(CFG.allowedUsers) && CFG.allowedUsers.length > 0) {
+      const ok = CFG.allowedUsers.some(u => String(u).toLowerCase() === String(login).toLowerCase());
+      if (!ok) {
+        throw new Error('账号 ' + login + ' 不在授权名单内');
+      }
+    }
+
+    // ③ 仓库写权限校验
+    setMsg('正在校验仓库权限…');
+    const rr = await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}`, { headers: authHeaders() });
+    if (rr.status === 404) throw new Error('仓库不存在，或令牌无权访问该仓库');
+    if (!rr.ok) throw new Error('读取仓库信息失败（HTTP ' + rr.status + '）');
+    const repo = await rr.json();
+    const perms = repo.permissions || {};
+    const canPush = perms.push === true || perms.admin === true || perms.maintain === true;
+
+    if (CFG.requireWrite && !canPush) {
+      throw new Error('账号 ' + login + ' 对该仓库只有只读权限，无法修改 FAQ');
+    }
+
+    // ④ 确认 FAQ 文件可读写
+    setMsg('正在检查 FAQ 文件…');
+    const fr = await fetch(apiUrl(), { headers: authHeaders() });
+    if (fr.status === 401) throw new Error('令牌无效或已过期');
+    if (fr.status === 403) throw new Error('令牌没有 Contents 读写权限，请检查 Permissions → Contents = Read and write');
+    if (fr.status === 404) {
+      // 文件不存在也能继续（保存时会创建）
+    } else if (!fr.ok) {
+      throw new Error('读取 FAQ 文件失败（HTTP ' + fr.status + '）');
+    }
+
+    // ⑤ 全部通过
+    if (document.getElementById('remember').checked) {
+      localStorage.setItem(LS_KEY, token);
+    } else {
+      localStorage.removeItem(LS_KEY);
+    }
+    enterApp(login, canPush ? '写权限' : '只读');
+  } catch (e) {
+    // 校验失败：清掉缓存令牌，退回登录页
+    if (silent) {
+      localStorage.removeItem(LS_KEY);
+      document.getElementById('login').style.display = 'block';
+      const m = document.getElementById('loginMsg');
+      if (m) m.textContent = '✘ ' + e.message;
+    } else {
+      setMsg('✘ ' + e.message);
+      if (e.message.includes('令牌无效') || e.message.includes('不在授权名单')) {
+        localStorage.removeItem(LS_KEY);
+      }
+    }
+    console.warn('[admin] 身份校验失败:', e.message);
   }
 }
 
@@ -254,43 +446,37 @@ async function doLogin() {
   const t = document.getElementById('tokenInput').value.trim();
   const msg = document.getElementById('loginMsg');
   if (!t) { msg.textContent = '请输入令牌'; return; }
-  if (!/^(ghp_|github_pat_)/.test(t)) {
+  if (!/^(ghp_|github_pat_|github_pat_)/.test(t)) {
     msg.textContent = '令牌格式不对，应以 github_pat_ 或 ghp_ 开头';
     return;
   }
   msg.textContent = '验证中…';
-  state.token = t;
-
-  try {
-    const r = await fetch(apiUrl(), { headers: authHeaders() });
-    if (r.status === 401) throw new Error('令牌无效或已过期');
-    if (r.status === 403) throw new Error('令牌没有该仓库的权限');
-    if (r.status === 404) {
-      // 文件还不存在，但仓库可访问（或者仓库不存在）
-      const rr = await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}`, { headers: authHeaders() });
-      if (rr.status === 404) throw new Error('仓库不存在，或令牌没有访问权限');
-    }
-    if (document.getElementById('remember').checked) {
-      localStorage.setItem(LS_KEY, t);
-    } else {
-      localStorage.removeItem(LS_KEY);
-    }
-    enterApp();
-  } catch (e) {
-    msg.textContent = '✘ ' + e.message;
-  }
+  await verifyIdentity(t, { silent: false });
 }
 
 function logout() {
   localStorage.removeItem(LS_KEY);
+  delete state.login;
   location.reload();
 }
 
-function enterApp() {
+// 退出时不清访问密码（只在超时后失效）
+function logoutAll() {
+  localStorage.removeItem(LS_KEY);
+  localStorage.removeItem(GATE_KEY);
+  location.reload();
+}
+
+function enterApp(login, permText) {
+  document.getElementById('gate').style.display = 'none';
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('repoInfo').textContent =
     `${CFG.owner}/${CFG.repo} · 分支 ${CFG.branch} · 文件 ${CFG.path}`;
+  const acc = document.getElementById('accountInfo');
+  if (acc) {
+    acc.innerHTML = `👤 已登录：<b>${esc(login || '')}</b> · 权限：${esc(permText || '')}`;
+  }
   loadFAQ();
 }
 
