@@ -19,6 +19,75 @@ body {
 .header h1 span { color: #2196F3; }
 .header .subtitle { font-size: 12px; color: #8899aa; margin-top: 4px; }
 
+/* ═══════════ 页头品牌区（logo + 标题）═══════════ */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 15px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, .30),
+    0 0 0 1px rgba(255, 255, 255, .10);
+  transition: transform .2s ease, box-shadow .2s ease;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.brand-logo:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 20px rgba(0, 0, 0, .40),
+    0 0 0 1px rgba(255, 255, 255, .16);
+}
+
+.brand-logo img {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+
+.brand-sep {
+  width: 1px;
+  height: 42px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    #2a3a4a 20%,
+    #2a3a4a 80%,
+    transparent 100%);
+}
+
+.brand-text {
+  min-width: 0;
+}
+
+/* 窄屏适配 */
+@media (max-width: 1080px) {
+  .brand { gap: 12px; }
+  .brand-logo { padding: 6px 12px; }
+  .brand-logo img { height: 34px; }
+  .brand-sep { height: 36px; }
+  .brand-text h1 { font-size: 19px; }
+  .brand-text .subtitle { font-size: 11px; }
+}
+
+@media (max-width: 760px) {
+  .brand-sep { display: none; }
+  .brand-logo img { height: 30px; }
+  .brand-text h1 { font-size: 17px; }
+  .brand-text .subtitle { display: none; }
+}
+
+
 /* ═══════════ 右上角管理后台入口 ═══════════ */
 .header-actions {
   display: flex;
@@ -137,7 +206,13 @@ body {
   background: #1a2a3a;
   border-bottom: 1px solid #2a3a4a;
   padding: 0 32px;
+  overflow-x: auto;              /* 窄屏横向滚动，避免文字竖排 */
+  scrollbar-width: thin;
+  scrollbar-color: #2a3a4a transparent;
 }
+.tabs::-webkit-scrollbar { height: 5px; }
+.tabs::-webkit-scrollbar-thumb { background: #2a3a4a; border-radius: 3px; }
+.tabs::-webkit-scrollbar-track { background: transparent; }
 .tab {
   padding: 12px 24px;
   cursor: pointer;
@@ -145,6 +220,8 @@ body {
   font-size: 14px;
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
+  white-space: nowrap;           /* 不换行 */
+  flex-shrink: 0;                /* 不被压缩 */
 }
 .tab:hover { color: #fff; }
 .tab.active { color: #2196F3; border-bottom-color: #2196F3; }
