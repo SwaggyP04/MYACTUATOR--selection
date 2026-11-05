@@ -368,9 +368,12 @@ function logout() {
   location.reload();
 }
 
-function logoutAll() {
+// 完全退出：清除 GitHub 令牌 + 服务端登录会话
+async function logoutAll() {
   localStorage.removeItem(LS_KEY);
-  location.reload();
+  delete state.login;
+  try { await fetch('/api/logout', { method: 'POST', cache: 'no-store' }); } catch (e) { /* 忽略 */ }
+  location.replace('/admin-login.html');
 }
 
 function enterApp(login, permText) {

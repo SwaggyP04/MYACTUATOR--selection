@@ -1,89 +1,104 @@
 /**
- * Cloudflare Pages Functions 中间件
+ * Cloudflare Pages Functions 中间件 —— 保护 /admin.html
  *
- * 作用：给 /admin.html 加服务端 HTTP Basic Auth 保护
- *      （主站 index.html 及所有公开资源不受影响）
+ * 认证方式：登录页 + 服务端 HMAC 签名 Cookie
+ * （相比 HTTP Basic Auth：样式可控、微信内置浏览器可用）
  *
- * 账号密码不在代码里，存在 Cloudflare 环境变量：
- *    ADMIN_USER
- *    ADMIN_PASS
+ * 需要的环境变量（Pages → Settings → Variables and secrets，类型 Secret）：
+ *   ADMIN_USER  登录用户名
+ *   ADMIN_PASS  登录密码（同时作为 Cookie 签名密钥）
  *
- * 设置位置：
- *   Workers & Pages → 项目 → Settings → Environment variables
- *   类型选「Secret / 加密」，Production 和 Preview 都要加
+ * 可选：
+ *   ADMIN_SESSION_HOURS  会话有效期，默认 12
  */
 
-const REALM = 'MyActuator Admin';
-const PROTECTED = ['/admin.html', '/admin'];
+const COOKIE = 'ma_admin';
+const LOGIN_PATH = '/admin-login.html';
 
-function unauthorized() {
-  return new Response('Authentication required', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': `Basic realm="${REALM}", charset="UTF-8"`,
-      'Cache-Control': 'no-store'
-    }
-  });
+/* ── 小工具 ── */
+
+function b64urlEncode(buf) {
+  const arr = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/** 常数时间比较，避免时序侧信道 */
+async function hmacHex(secret, msg) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg));
+  return b64urlEncode(sig);
+}
+
+function getCookie(request, name) {
+  const raw = request.headers.get('Cookie') || '';
+  const m = raw.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/** 常数时间比较 */
 function safeEqual(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
 }
+
+/** 校验会话令牌：格式 <过期时间戳>.<签名> */
+async function verifyToken(token, secret) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2) return false;
+  const exp = parseInt(parts[0], 10);
+  if (!Number.isFinite(exp)) return false;
+  if (exp < Math.floor(Date.now() / 1000)) return false;
+  const expect = await hmacHex(secret, String(exp));
+  return safeEqual(expect, parts[1]);
+}
+
+/* ── 中间件 ── */
 
 export async function onRequest(context) {
   const { request, next, env } = context;
   const url = new URL(request.url);
 
-  const isProtected = PROTECTED.some(
-    p => url.pathname === p || url.pathname === p + '/'
-  );
+  const isProtected = url.pathname === '/admin.html' || url.pathname === '/admin';
 
+  // 其它路径一律放行（主站公开）
   if (!isProtected) return next();
 
-  // 没配置环境变量时直接拒绝，避免"忘配置 = 无保护"
-  const expectedUser = env.ADMIN_USER;
-  const expectedPass = env.ADMIN_PASS;
-  if (!expectedUser || !expectedPass) {
+  // 未配置凭证：fail closed
+  if (!env.ADMIN_USER || !env.ADMIN_PASS) {
     return new Response(
-      '管理后台未配置访问凭证。\n\n请在 Cloudflare Pages -> Settings -> Environment variables 中设置 ADMIN_USER 与 ADMIN_PASS。',
-      { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } }
+      '管理后台未配置访问凭证。\n\n请在 Cloudflare Pages -> Settings -> Variables and secrets 中设置 ADMIN_USER 与 ADMIN_PASS（类型选 Secret），然后重新部署。',
+      {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
+      }
     );
   }
 
-  const auth = request.headers.get('Authorization') || '';
-  if (!auth.startsWith('Basic ')) return unauthorized();
-
-  let decoded = '';
-  try {
-    const bin = atob(auth.slice(6).trim());
-    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-    decoded = new TextDecoder('utf-8').decode(bytes);
-  } catch (e) {
-    return unauthorized();
+  const token = getCookie(request, COOKIE);
+  if (token && await verifyToken(token, env.ADMIN_PASS)) {
+    const res = await next();
+    const headers = new Headers(res.headers);
+    headers.set('Cache-Control', 'no-store');
+    return new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: headers
+    });
   }
 
-  const sep = decoded.indexOf(':');
-  if (sep < 0) return unauthorized();
-
-  const user = decoded.slice(0, sep);
-  const pass = decoded.slice(sep + 1);
-
-  if (!safeEqual(user, expectedUser) || !safeEqual(pass, expectedPass)) {
-    return unauthorized();
-  }
-
-  // 认证通过：禁止缓存，避免被中间层缓存后绕过登录
-  const res = await next();
-  const headers = new Headers(res.headers);
-  headers.set('Cache-Control', 'no-store');
-  return new Response(res.body, {
-    status: res.status,
-    statusText: res.statusText,
-    headers: headers
-  });
+  // 未登录 → 跳登录页，并带回原地址
+  const nextUrl = url.pathname + url.search;
+  const target = new URL(LOGIN_PATH, url.origin);
+  target.searchParams.set('next', nextUrl);
+  return Response.redirect(target.toString(), 302);
 }

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<title>登录 · FAQ 管理后台</title>
+<style>
+  :root {
+    --bg: #0b1017;
+    --card: #11161d;
+    --border: #2a3a4a;
+    --border-focus: #4a9eff;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --dim: #5a6a7a;
+    --accent: #3b82f6;
+    --accent-2: #4a9eff;
+    --danger: #f85149;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(1100px 600px at 50% -10%, #16202c 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    min-height: 100vh;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px 24px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .02) inset;
+    animation: rise .28s ease-out;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .brand-mark {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #2563eb, #4a9eff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, .35);
+  }
+  .brand-text h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: .2px;
+  }
+  .brand-text p {
+    margin: 3px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .field { margin-bottom: 15px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+  .input-wrap { position: relative; }
+  .field input {
+    width: 100%;
+    padding: 12px 14px;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .field input::placeholder { color: #4a5a6a; }
+  .field input:focus {
+    border-color: var(--border-focus);
+    background: #0f151c;
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, .12);
+  }
+  .field input.has-toggle { padding-right: 46px; }
+
+  .toggle-eye {
+    position: absolute;
+    right: 6px; top: 50%;
+    transform: translateY(-50%);
+    width: 34px; height: 34px;
+    border: none;
+    background: transparent;
+    color: var(--dim);
+    cursor: pointer;
+    font-size: 15px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .toggle-eye:active { background: rgba(255,255,255,.06); }
+
+  .btn-login {
+    width: 100%;
+    padding: 13px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: filter .15s, transform .08s;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, .3);
+  }
+  .btn-login:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn-login:active:not(:disabled) { transform: translateY(1px); }
+  .btn-login:disabled { opacity: .6; cursor: default; }
+
+  .msg {
+    min-height: 20px;
+    margin-top: 12px;
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.5;
+    color: var(--danger);
+  }
+  .msg.ok { color: #3fb950; }
+
+  .foot {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #1a2330;
+    font-size: 11.5px;
+    color: var(--dim);
+    line-height: 1.7;
+    text-align: center;
+  }
+
+  /* 微信 / 移动端微调 */
+  @media (max-width: 420px) {
+    .card { padding: 24px 18px 20px; border-radius: 12px; }
+    .field input { font-size: 16px; } /* 避免 iOS 自动放大 */
+  }
+</style>
+</head>
+<body>
+
+<form class="card" id="form" autocomplete="on">
+  <div class="brand">
+    <div class="brand-mark">🔒</div>
+    <div class="brand-text">
+      <h1>FAQ 管理后台</h1>
+      <p>脉塔电机选型系统 · 仅限授权人员</p>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="user">用户名</label>
+    <div class="input-wrap">
+      <input type="text" id="user" name="user" placeholder="请输入用户名"
+             autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="pass">密码</label>
+    <div class="input-wrap">
+      <input type="password" id="pass" name="pass" class="has-toggle" placeholder="请输入密码"
+             autocomplete="current-password" required>
+      <button type="button" class="toggle-eye" id="eye" aria-label="显示密码">👁</button>
+    </div>
+  </div>
+
+  <button type="submit" class="btn-login" id="btn">登 录</button>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="foot">
+    本页面由 Cloudflare 服务端校验<br>
+    登录状态保留 12 小时
+  </div>
+</form>
+
+<script>
+(function () {
+  var form = document.getElementById('form');
+  var userEl = document.getElementById('user');
+  var passEl = document.getElementById('pass');
+  var btn = document.getElementById('btn');
+  var msg = document.getElementById('msg');
+  var eye = document.getElementById('eye');
+
+  // 登录后跳回的地址
+  var params = new URLSearchParams(location.search);
+  var next = params.get('next') || '/admin.html';
+  if (next.charAt(0) !== '/' || next.slice(0, 2) === '//') next = '/admin.html';
+
+  function setMsg(text, ok) {
+    msg.textContent = text || '';
+    msg.className = 'msg' + (ok ? ' ok' : '');
+  }
+
+  eye.addEventListener('click', function () {
+    var show = passEl.type === 'password';
+    passEl.type = show ? 'text' : 'password';
+    eye.textContent = show ? '🙈' : '👁';
+    passEl.focus();
+  });
+
+  userEl.focus();
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    setMsg('');
+    var u = userEl.value.trim();
+    var p = passEl.value;
+    if (!u || !p) { setMsg('请填写用户名和密码'); return; }
+
+    btn.disabled = true;
+    var old = btn.textContent;
+    btn.textContent = '验证中…';
+
+    try {
+      var r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: u, pass: p, next: next })
+      });
+      var j = {};
+      try { j = await r.json(); } catch (err) {}
+
+      if (r.ok && j.ok) {
+        setMsg('验证通过，正在进入…', true);
+        location.replace(j.next || next);
+        return;
+      }
+      setMsg(j.error || ('登录失败（HTTP ' + r.status + '）'));
+      passEl.value = '';
+      passEl.focus();
+    } catch (err) {
+      setMsg('网络错误，请稍后重试');
+    }
+
+    btn.disabled = false;
+    btn.textContent = old;
+  });
+})();
+</script>
+</body>
+</html>
