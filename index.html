@@ -2480,26 +2480,25 @@ function renderConst() {
   /* ══ 力矩常数 ══ */
   html += '<div class="mc-section">力矩常数 Kt（输出轴，N·m/A）</div>';
 
-  html += '<div class="mc-kv mc-kv-main"><span>当前采用<span class="mc-hint">' + kt.source + '</span></span><b>' +
+  html += '<div class="mc-kv mc-kv-main"><span>当前采用</span><b>' +
           (kt.value != null ? r3(kt.value) + ' N·m/A' : '— 无可用数据') + '</b></div>';
 
   const rows = [];
-  if (kt.vendor != null) rows.push(['厂家实测 KTout', kt.vendor, '厂家技术人员确认，最可信']);
-  if (kt.rated != null) rows.push(['额定点反算', kt.rated, '额定扭矩 ÷ 额定相电流']);
-  if (kt.manual != null) rows.push(['手册标称', kt.manual, '口径不统一，仅供参考']);
+  if (kt.vendor != null) rows.push(['厂家实测 KTout', kt.vendor]);
+  if (kt.rated != null) rows.push(['额定点反算', kt.rated]);
+  if (kt.manual != null) rows.push(['手册标称', kt.manual]);
 
-  rows.forEach(([name, val, hint]) => {
+  rows.forEach(([name, val]) => {
     const isUsed = Math.abs(val - kt.value) < 1e-9 && kt.source !== '手动输入' &&
                    ((name.indexOf('厂家') === 0 && kt.vendor != null) ||
                     (name.indexOf('额定') === 0 && kt.vendor == null && kt.rated != null) ||
                     (name.indexOf('手册') === 0 && kt.vendor == null && kt.rated == null));
-    html += '<div class="mc-kv"><span>' + name + '<span class="mc-hint">' + hint + '</span></span><b>' +
+    html += '<div class="mc-kv"><span>' + name + '</span><b>' +
             r3(val) + (isUsed ? '　<b class="mc-used">采用</b>' : '') + '</b></div>';
   });
 
   if (ktRotor != null) {
-    html += '<div class="mc-kv"><span>转子侧 Kt<span class="mc-hint">反电动势 ÷ 104.72，未乘减速比</span></span><b>' +
-            r3(ktRotor) + ' N·m/A</b></div>';
+    html += '<div class="mc-kv"><span>转子侧 Kt</span><b>' + r3(ktRotor) + ' N·m/A</b></div>';
   }
 
   // 偏差提示：实测 vs 反算
@@ -2544,9 +2543,9 @@ function renderConst() {
 
   /* ══ 反驱力矩 ══ */
   html += '<div class="mc-section">反驱力矩</div>';
-  html += '<div class="mc-kv"><span>反驱力矩<span class="mc-hint">' + bdSource + '</span></span><b>' +
+  html += '<div class="mc-kv"><span>反驱力矩</span><b>' +
           (bdUse != null ? r2(bdUse) + ' N·m' : '— 手册未提供') + '</b></div>';
-  html += '<div class="mc-kv"><span>反驱比<span class="mc-hint">反驱力矩 ÷ 额定扭矩</span></span><b>' +
+  html += '<div class="mc-kv"><span>反驱比</span><b>' +
           (bdRatio != null ? (bdRatio * 100).toFixed(1) + ' %' : '—') + '</b></div>';
 
   if (bdRatio != null) {
@@ -2574,7 +2573,6 @@ function renderConst() {
   html += '<div class="mc-foot">';
   html += '<b>计算依据</b><br>';
   html += '· Kt = T / I（N·m/A）<br>';
-  html += '· 换算取值的可信度：厂家实测 KTout ＞ 额定点反算 ＞ 手册标称<br>';
   html += '· 额定点反算用额定扭矩 ÷ 额定相电流，因含铁损铜损且随负载饱和，偏差可达 ±40%<br>';
   html += '· 转子侧 Kt = 反电动势(V/krpm) ÷ 104.72，尚未乘减速比<br>';
   html += '· 反驱比参考：&lt;5% 轻、5~15% 中、&gt;15% 重';
