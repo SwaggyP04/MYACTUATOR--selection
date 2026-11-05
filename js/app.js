@@ -1899,7 +1899,13 @@ function generateHumanoidJoints(params) {
   // ── 右腿镜像 ──
   joints.push.apply(joints, mirrorJoints(joints, '腿'));
 
-  joints.forEach(j => { j.preferredMotorType = getPreferredType(j.part); });
+  // 模组组成方案（混合 / 全行星 / 全谐波）都是用户的明确选择，
+  // 一律按硬性类型约束处理：在各类型内部放宽背隙，不擅自跨类型
+  const hardFamily = true;
+  joints.forEach(j => {
+    j.preferredMotorType = getPreferredType(j.part);
+    j.hardFamily = hardFamily;
+  });
   return joints;
 }
 
@@ -2148,6 +2154,7 @@ function recommendMotorForJoint(joint, requirements = {}) {
   const peak = Number(joint.peak) || 0;
   const type = joint.type;
   const preferredMotorType = joint.preferredMotorType;
+  const hardFamily = !!joint.hardFamily && !!preferredMotorType;
   const speedDeg = Number(joint.speed) || 0;
 
   const maxBacklash = requirements.maxBacklash || null;
@@ -2193,16 +2200,41 @@ function recommendMotorForJoint(joint, requirements = {}) {
     return true;
   }
 
-  // 三级降级：全条件 → 放宽精度/背隙 → 只保扭矩
-  let candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p) && passesSpeed(p) && passesQuality(p));
+  // 用户显式选了「全行星 / 全谐波」时，类型是硬约束：
+  // 先在该类型内部逐级放宽，实在没有才允许跨类型
+  function inFamily(p) {
+    return !hardFamily || p.type === preferredMotorType;
+  }
+
+  let candidates = PRODUCTS.filter(p =>
+    inFamily(p) && isActuator(p) && passesTorque(p) && passesSpeed(p) && passesQuality(p));
   let relaxed = '';
+
   if (candidates.length === 0) {
-    candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p) && passesSpeed(p));
-    if (candidates.length > 0) relaxed = '精度/背隙要求已放宽';
+    candidates = PRODUCTS.filter(p => inFamily(p) && isActuator(p) && passesTorque(p) && passesSpeed(p));
+    if (candidates.length > 0) {
+      relaxed = hardFamily
+        ? '该类型背隙/精度不满足，已放宽'
+        : '精度/背隙要求已放宽';
+    }
   }
   if (candidates.length === 0) {
-    candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p));
-    if (candidates.length > 0) relaxed = '精度/背隙/转速要求已放宽';
+    candidates = PRODUCTS.filter(p => inFamily(p) && isActuator(p) && passesTorque(p));
+    if (candidates.length > 0) {
+      relaxed = hardFamily
+        ? '该类型背隙/精度/转速不满足，已放宽'
+        : '精度/背隙/转速要求已放宽';
+    }
+  }
+  if (candidates.length === 0 && hardFamily) {
+    // 该类型内连扭矩都满足不了，只能跨类型，并明确告知
+    candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p) && passesSpeed(p));
+    if (candidates.length === 0) {
+      candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p));
+    }
+    if (candidates.length > 0) {
+      relaxed = preferredMotorType + '范围内无满足型号，已跨类型推荐';
+    }
   }
 
   // 计分：超配按比例轻罚；欠配理论上不会出现，出现则重罚
@@ -2288,6 +2320,7 @@ function recommendMotorForJoint(joint, requirements = {}) {
     primary: top3[0] || null,
     satisfaction: satisfaction,
     relaxed: relaxed,
+    hardFamily: hardFamily,
     needRpm: Math.round(needRpm * 10) / 10
   };
 }
@@ -2508,7 +2541,9 @@ function renderRobotSolution(solution) {
           <td>${primary ? fmt(primary.rated) + ' Nm' : '-'}</td>
           <td>${primary && primary.backlash !== null ? fmt(primary.backlash) : '-'}</td>
           <td>${primary && primary.repeatability !== null ? fmt(primary.repeatability) : '-'}</td>
-          <td><span class="satisfaction-tag ${satisfactionCls}">${joint.satisfaction || '-'}</span></td>
+          <td><span class="satisfaction-tag ${satisfactionCls}">${joint.satisfaction || '-'}</span>${
+            joint.relaxed ? `<div style="font-size:10.5px;color:#f0883e;margin-top:4px;line-height:1.5;max-width:140px;">⚠ ${joint.relaxed}</div>` : ''
+          }</td>
         </tr>
       `;
     });
@@ -2680,10 +2715,14 @@ function updateSolutionParams() {
         <div class="form-group">
           <label>${label}</label>
           <select id="sol-${key}">
-            <option value="mixed">上半身行星+下半身谐波</option>
-            <option value="all_planetary">全行星模组</option>
-            <option value="all_harmonic">全谐波模组</option>
+            <option value="mixed">上半身行星 + 下半身谐波</option>
+            <option value="all_planetary">全行星模组（全身）</option>
+            <option value="all_harmonic">全谐波模组（全身）</option>
           </select>
+          <div style="font-size:11.5px;color:#667788;margin-top:6px;line-height:1.6;">
+            选定后按该组成硬性选型，不会擅自跨类型。<br>
+            行星背隙 10~15 弧分，若背隙要求更严会自动放宽并标注。
+          </div>
         </div>
       `;
     } else if (key === 'j1Axis') {
