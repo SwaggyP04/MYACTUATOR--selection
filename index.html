@@ -471,6 +471,7 @@
         <button class="sup-tab active" data-sub="joint">🎯 关节选型</button>
         <button class="sup-tab" data-sub="envelope">🌡 工况校核</button>
         <button class="sup-tab" data-sub="duty">📊 占空比</button>
+        <button class="sup-tab" data-sub="const">⚙️ 常数与反驱</button>
         <button class="sup-tab" data-sub="faults">🔴 故障码</button>
         <button class="sup-tab" data-sub="tshoot">🧭 排障向导</button>
         <button class="sup-tab" data-sub="fields">📖 参数说明</button>
@@ -638,6 +639,66 @@
           <div class="env-result">
             <div class="card">
               <div id="duty-result"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 电机常数与反驱力矩 -->
+      <div class="sup-panel" id="sup-const">
+        <div class="env-wrap">
+          <div class="card">
+            <div class="card-title">电机常数与反驱力矩</div>
+            <p class="env-desc">
+              选择型号后自动带出手册参数；填入电流 / 扭矩可反算力矩常数，
+              填入实测反驱力矩可判断是否适合拖动示教。
+            </p>
+
+            <div class="env-field">
+              <label>执行器型号</label>
+              <select id="mc-model" onchange="renderConst()"></select>
+            </div>
+
+            <div class="mc-section" style="margin-top:22px;">扭矩 ↔ 电流</div>
+
+            <div class="env-field">
+              <label>电流</label>
+              <input type="number" id="mc-current" step="0.1" min="0" placeholder="可选" oninput="renderConst()">
+              <span class="env-unit">A</span>
+            </div>
+            <div class="env-field">
+              <label>扭矩</label>
+              <input type="number" id="mc-torque" step="0.1" min="0" placeholder="可选" oninput="renderConst()">
+              <span class="env-unit">N·m</span>
+            </div>
+
+            <div class="mc-section">反驱力矩</div>
+
+            <div class="env-field">
+              <label>施加外力矩</label>
+              <input type="number" id="mc-ext" step="0.1" min="0" placeholder="可选" oninput="renderConst()">
+              <span class="env-unit">N·m</span>
+            </div>
+            <div class="env-field">
+              <label>实测反驱力矩</label>
+              <input type="number" id="mc-backdrive" step="0.01" min="0" placeholder="可选，覆盖手册值" oninput="renderConst()">
+              <span class="env-unit">N·m</span>
+            </div>
+
+            <div class="env-actions">
+              <button class="btn btn-secondary" onclick="exportConstExcel()">⬇ 导出 Excel</button>
+            </div>
+
+            <div class="env-help">
+              Kt = T / I　（N·m/A）<br>
+              反驱比 = 反驱力矩 ÷ 额定扭矩<br>
+              两个输入都填时，会额外给出实测 Kt 与偏差。
+            </div>
+          </div>
+
+          <div class="env-result">
+            <div class="card">
+              <div id="mc-result"></div>
             </div>
           </div>
         </div>
@@ -1091,6 +1152,7 @@ function initSupportTabs() {
       if (sub === 'joint') renderJointSizing();
       else if (sub === 'envelope') renderEnvelopeCheck();
       else if (sub === 'duty') initDuty();
+      else if (sub === 'const') renderConst();
       else if (sub === 'faults') renderSupportFaults();
       else if (sub === 'tshoot') renderTshootHome();
       else if (sub === 'fields') renderSupportFields();
@@ -1365,6 +1427,7 @@ document.addEventListener('click', function (e) {
       if (sub === 'joint') { renderJointSizing(); }
       else if (sub === 'envelope') { initEnvModelSelect(); renderEnvelopeCheck(); }
       else if (sub === 'duty') { initDuty(); }
+      else if (sub === 'const') { renderConst(); }
       else if (sub === 'faults') renderSupportFaults();
       else if (sub === 'tshoot') renderTshootHome();
       else if (sub === 'fields') renderSupportFields();
@@ -2297,6 +2360,242 @@ function jsShowAll() {
 
 function initJointSizing() {
   renderJointSizing();
+}
+
+
+
+/* ═══════════ 电机常数与反驱力矩 ═══════════ */
+/* ═══════════════════════════════════════════════════════════════
+   电机常数与反驱力矩
+   ───────────────────────────────────────────────────────────────
+   力矩常数 Kt（N·m/A）：输出扭矩 ÷ 相电流
+
+     · 标称值      —— 产品手册给出
+     · 额定点反算  —— 额定扭矩 ÷ 额定电流（含损耗，略偏小）
+     · 实测反算    —— 实测扭矩 ÷ 实测电流
+
+   反驱力矩（N·m）：不通电时手动转动输出轴所需的力矩
+     来源：减速比、磁阻力、齿槽扭矩、润滑与装配
+     反驱比 = 反驱力矩 ÷ 额定扭矩，衡量是否适合拖动示教
+   ═══════════════════════════════════════════════════════════════ */
+
+const KT_EMF_FACTOR = 104.72;   // V/krpm → V/(rad/s)，即 1000×2π/60
+
+function initConstModelSelect() {
+  const sel = document.getElementById('mc-model');
+  if (!sel || sel.options.length > 0) return;
+  if (typeof PRODUCTS === 'undefined' || !PRODUCTS.length) {
+    sel.innerHTML = '<option value="">（产品库未加载）</option>';
+    return;
+  }
+  const groups = {};
+  PRODUCTS.forEach(p => {
+    const t = p.type || '其他';
+    (groups[t] = groups[t] || []).push(p);
+  });
+  let html = '';
+  Object.keys(groups).sort().forEach(t => {
+    html += '<optgroup label="' + t + '">';
+    groups[t].forEach(p => {
+      const label = (p.short || p.full) + (p.ratio ? '  ·  1:' + p.ratio : '') +
+                    '  ·  ' + (p.rated != null ? p.rated : '?') + ' N·m';
+      html += '<option value="' + String(p.full).replace(/"/g, '&quot;') + '">' + label + '</option>';
+    });
+    html += '</optgroup>';
+  });
+  sel.innerHTML = html;
+  if (!sel.value && PRODUCTS[0]) sel.value = PRODUCTS[0].full;
+}
+
+function constCurrentProduct() {
+  const sel = document.getElementById('mc-model');
+  if (!sel || !sel.value || typeof PRODUCTS === 'undefined') return null;
+  return PRODUCTS.find(p => p.full === sel.value) || null;
+}
+
+function num(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const v = parseFloat(el.value);
+  return isFinite(v) && v > 0 ? v : null;
+}
+
+/* ── 主渲染 ── */
+function renderConst() {
+  initConstModelSelect();
+  const box = document.getElementById('mc-result');
+  if (!box) return;
+
+  const p = constCurrentProduct();
+  if (!p) {
+    box.innerHTML = '<div class="env-verdict"><span class="env-tag env-tag-muted">未选择型号</span></div>';
+    return;
+  }
+
+  const r2 = v => (v == null ? '—' : (Math.round(v * 1000) / 1000));
+  const r3 = v => (v == null ? '—' : (Math.round(v * 10000) / 10000));
+
+  /* ── 力矩常数 ── */
+  const ktNom = p.torqueConstant != null ? Number(p.torqueConstant) : null;
+  const ktRated = (p.rated != null && p.ratedCurrent) ? p.rated / p.ratedCurrent : null;
+  const ktRotor = p.backEMF != null ? Number(p.backEMF) / KT_EMF_FACTOR : null;
+
+  /* ── 反驱力矩 ── */
+  const bdNom = p.backdriveTorque != null ? Number(p.backdriveTorque) : null;
+  const bdInput = num('mc-backdrive');            // 实测反驱
+  const bdUse = bdInput != null ? bdInput : bdNom;
+  const bdSource = bdInput != null ? '实测输入' : (bdNom != null ? '手册标称' : '无数据');
+  const bdRatio = (bdUse != null && p.rated) ? bdUse / p.rated : null;
+
+  /* ── 扭矩 / 电流 换算 ── */
+  const curIn = num('mc-current');
+  const tqIn = num('mc-torque');
+  const extTq = num('mc-ext');
+
+  let html = '';
+
+  /* 头部 */
+  html += '<div class="env-verdict">';
+  html += '<span class="env-tag env-tag-ok">' + (p.short || p.full) + '</span>';
+  html += '<span class="env-model-name">' + (p.full || '') + (p.ratio ? '　1:' + p.ratio : '') + '</span>';
+  html += '</div>';
+
+  /* ══ 力矩常数 ══ */
+  html += '<div class="mc-section">力矩常数 Kt</div>';
+  html += '<div class="mc-kv"><span>标称 Kt（手册）</span><b>' + (ktNom != null ? r3(ktNom) + ' N·m/A' : '— 手册未提供') + '</b></div>';
+  html += '<div class="mc-kv"><span>额定点反算 Kt<span class="mc-hint">额定扭矩 ÷ 额定电流</span></span><b>' +
+          (ktRated != null ? r3(ktRated) + ' N·m/A' : '—') + '</b></div>';
+  html += '<div class="mc-kv"><span>转子侧 Kt<span class="mc-hint">反电动势 ÷ 104.72，不含减速器</span></span><b>' +
+          (ktRotor != null ? r3(ktRotor) + ' N·m/A' : '—') + '</b></div>';
+
+  if (ktNom != null && ktRated != null && ktNom > 0) {
+    const dev = (ktRated - ktNom) / ktNom * 100;
+    const cls = Math.abs(dev) <= 10 ? 'mc-good' : (Math.abs(dev) <= 20 ? 'mc-warn' : 'mc-bad');
+    html += '<div class="mc-dev ' + cls + '">额定点反算与标称偏差 ' + (dev >= 0 ? '+' : '') + dev.toFixed(1) + '%' +
+            (Math.abs(dev) > 10 ? '（差异来自铁损、铜损与测量口径）' : '') + '</div>';
+  }
+
+  /* ══ 换算 ══ */
+  html += '<div class="mc-section">扭矩 ↔ 电流 换算</div>';
+  if (ktNom != null) {
+    if (curIn != null) {
+      html += '<div class="mc-kv"><span>输入电流 ' + r2(curIn) + ' A</span><b>→ 扭矩 ' + r2(ktNom * curIn) + ' N·m</b></div>';
+    }
+    if (tqIn != null) {
+      html += '<div class="mc-kv"><span>输入扭矩 ' + r2(tqIn) + ' N·m</span><b>→ 电流 ' + r2(tqIn / ktNom) + ' A</b></div>';
+    }
+    if (curIn == null && tqIn == null) {
+      html += '<div class="mc-note">填入左侧「电流」或「扭矩」，这里按标称 Kt 自动换算。</div>';
+    }
+    if (curIn != null && tqIn != null) {
+      const ktMeas = tqIn / curIn;
+      const devM = (ktMeas - ktNom) / ktNom * 100;
+      const clsM = Math.abs(devM) <= 10 ? 'mc-good' : 'mc-bad';
+      html += '<div class="mc-dev ' + clsM + '">实测 Kt = ' + r3(ktMeas) + ' N·m/A（与标称偏差 ' +
+              (devM >= 0 ? '+' : '') + devM.toFixed(1) + '%）' +
+              (Math.abs(devM) > 20 ? '　偏差偏大，检查标定、负载或电流采样' : '') + '</div>';
+    }
+  } else {
+    html += '<div class="mc-note">该型号手册未提供力矩常数，无法换算。</div>';
+  }
+
+  /* ══ 反驱力矩 ══ */
+  html += '<div class="mc-section">反驱力矩</div>';
+  html += '<div class="mc-kv"><span>反驱力矩<span class="mc-hint">' + bdSource + '</span></span><b>' +
+          (bdUse != null ? r2(bdUse) + ' N·m' : '— 手册未提供') + '</b></div>';
+  html += '<div class="mc-kv"><span>反驱比<span class="mc-hint">反驱力矩 ÷ 额定扭矩</span></span><b>' +
+          (bdRatio != null ? (bdRatio * 100).toFixed(1) + ' %' : '—') + '</b></div>';
+
+  if (bdRatio != null) {
+    let judge, cls;
+    if (bdRatio < 0.05) { judge = '很轻 —— 适合拖动示教、碰撞检测'; cls = 'mc-good'; }
+    else if (bdRatio < 0.15) { judge = '中等 —— 可拖动，但手感偏重'; cls = 'mc-warn'; }
+    else { judge = '偏重 —— 不适合人工回拖，建议用带抱闸或高反驱效率的型号'; cls = 'mc-bad'; }
+    html += '<div class="mc-dev ' + cls + '">' + judge + '</div>';
+  }
+
+  if (extTq != null && bdUse != null) {
+    const canDrive = extTq > bdUse;
+    const margin = (extTq - bdUse) / bdUse * 100;
+    html += '<div class="mc-dev ' + (canDrive ? 'mc-good' : 'mc-bad') + '">' +
+            '施加外力矩 ' + r2(extTq) + ' N·m：' +
+            (canDrive ? '可以反驱（余量 ' + margin.toFixed(0) + '%）' : '无法反驱（还差 ' + r2(bdUse - extTq) + ' N·m）') +
+            '</div>';
+  }
+
+  if (bdNom == null && bdInput == null) {
+    html += '<div class="mc-note">手册未提供反驱力矩。可在左侧填入实测值（不通电时手动匀速转动输出轴，用量程合适的小扭力扳手或配重测量）。</div>';
+  }
+
+  /* ══ 计算依据 ══ */
+  html += '<div class="mc-foot">';
+  html += '<b>计算依据</b><br>';
+  html += '· Kt = T / I（N·m/A），标称值取自产品手册<br>';
+  html += '· 额定点反算用额定扭矩 ÷ 额定电流，因含铁损铜损，通常略小于标称<br>';
+  html += '· 转子侧 Kt = 反电动势(V/krpm) ÷ 104.72，尚未乘减速比<br>';
+  html += '· 反驱比 = 反驱力矩 ÷ 额定扭矩，经验参考：&lt;5% 轻、5~15% 中、&gt;15% 重';
+  html += '</div>';
+
+  box.innerHTML = html;
+}
+
+/* ── 导出 Excel ── */
+function exportConstExcel() {
+  const p = constCurrentProduct();
+  if (!p) { alert('请先选择型号'); return; }
+  if (typeof XLSX === 'undefined') { alert('Excel 组件未加载'); return; }
+
+  const r3 = v => (v == null ? '' : Math.round(v * 10000) / 10000);
+  const ktNom = p.torqueConstant != null ? Number(p.torqueConstant) : null;
+  const ktRated = (p.rated != null && p.ratedCurrent) ? p.rated / p.ratedCurrent : null;
+  const ktRotor = p.backEMF != null ? Number(p.backEMF) / KT_EMF_FACTOR : null;
+  const bdInput = num('mc-backdrive');
+  const bdUse = bdInput != null ? bdInput : (p.backdriveTorque != null ? Number(p.backdriveTorque) : null);
+  const bdRatio = (bdUse != null && p.rated) ? bdUse / p.rated : null;
+
+  const rows = [
+    ['电机常数与反驱力矩'],
+    ['生成时间', new Date().toLocaleString('zh-CN')],
+    [],
+    ['型号', p.full],
+    ['类型', p.type || ''],
+    ['减速比', p.ratio != null ? p.ratio : ''],
+    ['额定扭矩 (N·m)', p.rated != null ? p.rated : ''],
+    ['峰值扭矩 (N·m)', p.peak != null ? p.peak : ''],
+    ['额定电流 (A)', p.ratedCurrent != null ? p.ratedCurrent : ''],
+    ['额定转速 (RPM)', p.speed != null ? p.speed : ''],
+    [],
+    ['力矩常数'],
+    ['标称 Kt (N·m/A)', r3(ktNom)],
+    ['额定点反算 Kt (N·m/A)', r3(ktRated)],
+    ['转子侧 Kt (N·m/A)', r3(ktRotor)],
+    ['反电动势 (V/krpm)', p.backEMF != null ? p.backEMF : ''],
+    [],
+    ['反驱力矩'],
+    ['反驱力矩 (N·m)', r3(bdUse)],
+    ['反驱来源', bdInput != null ? '实测输入' : (p.backdriveTorque != null ? '手册标称' : '无数据')],
+    ['反驱比 (%)', bdRatio != null ? Math.round(bdRatio * 1000) / 10 : ''],
+    [],
+    ['换算'],
+    ['输入电流 (A)', num('mc-current') || ''],
+    ['按标称 Kt 的扭矩 (N·m)', (ktNom != null && num('mc-current')) ? r3(ktNom * num('mc-current')) : ''],
+    ['输入扭矩 (N·m)', num('mc-torque') || ''],
+    ['按标称 Kt 的电流 (A)', (ktNom != null && num('mc-torque')) ? r3(num('mc-torque') / ktNom) : ''],
+    ['施加外力矩 (N·m)', num('mc-ext') || ''],
+    [],
+    ['公式'],
+    ['Kt', 'Kt = T / I'],
+    ['转子侧 Kt', 'Ke(V/krpm) / 104.72'],
+    ['反驱比', '反驱力矩 / 额定扭矩']
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 26 }, { wch: 22 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '常数与反驱');
+  const now = new Date();
+  const ds = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+  XLSX.writeFile(wb, '电机常数_' + (p.short || 'motor') + '_' + ds + '.xlsx');
 }
 
 </script>
