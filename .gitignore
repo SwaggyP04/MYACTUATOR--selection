@@ -17,6 +17,7 @@ assembly-app/
 
 # ── Cloudflare Pages 构建产物 ──
 dist/
+.wrangler/
 
 # ── 编辑器 / IDE ──
 .vscode/
