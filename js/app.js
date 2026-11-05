@@ -1697,7 +1697,13 @@ const ROBOT_TEMPLATES = {
       backlash: '背隙要求 (弧分)',
       accuracy: '重复定位精度 (度)',
       motorConfig: '模组组成方案'
-    }
+    },
+    motorConfigOptions: [
+      { value: 'mixed',         label: '上半身行星 + 下半身谐波' },
+      { value: 'all_planetary', label: '全行星模组（全身）' },
+      { value: 'all_harmonic',  label: '全谐波模组（全身）' }
+    ],
+    motorConfigHint: '选定后按该组成硬性选型，不会擅自跨类型。行星背隙 10~15 弧分，若背隙要求更严会自动放宽并标注。'
   },
   arm: {
     name: '机械臂',
@@ -1713,6 +1719,7 @@ const ROBOT_TEMPLATES = {
       safetyFactor: 1.5,
       payloadOffset: 50,
       j1Axis: 'vertical',
+      motorConfig: 'auto',
       backlash: 15,
       accuracy: 0.5
     },
@@ -1728,9 +1735,16 @@ const ROBOT_TEMPLATES = {
       safetyFactor: '安全系数',
       payloadOffset: '负载偏心 (mm)',
       j1Axis: 'J1 轴方向',
+      motorConfig: '模组组成方案',
       backlash: '背隙要求 (弧分)',
       accuracy: '重复定位精度 (度)'
-    }
+    },
+    motorConfigOptions: [
+      { value: 'auto',          label: '智能推荐（按关节载荷自动）' },
+      { value: 'all_planetary', label: '全行星模组' },
+      { value: 'all_harmonic',  label: '全谐波模组' }
+    ],
+    motorConfigHint: '智能推荐会按每个关节的载荷类型挑最合适的类型；选全行星 / 全谐波则锁定该类型，族内放宽背隙并标注。'
   },
   quadruped: {
     name: '四足机器狗',
@@ -1839,11 +1853,13 @@ function generateHumanoidJoints(params) {
   const h = height / 100;
 
   // 模组偏好：mixed = 上半身行星 / 下半身谐波
-  const getPreferredType = (part) => {
-    if (params.motorConfig === 'all_planetary') return '行星模组';
-    if (params.motorConfig === 'all_harmonic') return '谐波模组';
+  // 返回该部位允许的模组类型（第一个为首选）
+  // 谐波族包含「谐波模组」与「轻量谐波」——轻量谐波本质也是谐波减速
+  const getPreferredFamily = (part) => {
+    if (params.motorConfig === 'all_planetary') return ['行星模组'];
+    if (params.motorConfig === 'all_harmonic') return ['谐波模组', '轻量谐波'];
     const upper = ['头部', '左臂', '右臂', '躯干'];
-    return upper.indexOf(part) >= 0 ? '行星模组' : '谐波模组';
+    return upper.indexOf(part) >= 0 ? ['行星模组'] : ['谐波模组', '轻量谐波'];
   };
 
   // 人体比例
@@ -1901,10 +1917,10 @@ function generateHumanoidJoints(params) {
 
   // 模组组成方案（混合 / 全行星 / 全谐波）都是用户的明确选择，
   // 一律按硬性类型约束处理：在各类型内部放宽背隙，不擅自跨类型
-  const hardFamily = true;
   joints.forEach(j => {
-    j.preferredMotorType = getPreferredType(j.part);
-    j.hardFamily = hardFamily;
+    j.familyTypes = getPreferredFamily(j.part);
+    j.preferredMotorType = j.familyTypes[0];
+    j.hardFamily = true;
   });
   return joints;
 }
@@ -2059,6 +2075,20 @@ function generateArmJoints(params, actuatorMasses) {
     joints.pop();
   }
 
+  // 模组组成方案：auto = 不锁定类型（与官方 WorkBench 一致，取最轻）
+  const armFamily =
+    params.motorConfig === 'all_planetary' ? ['行星模组'] :
+    params.motorConfig === 'all_harmonic' ? ['谐波模组', '轻量谐波'] :
+    null;
+
+  if (armFamily) {
+    joints.forEach(j => {
+      j.familyTypes = armFamily.slice();
+      j.preferredMotorType = armFamily[0];
+      j.hardFamily = true;
+    });
+  }
+
   return joints;
 }
 
@@ -2154,7 +2184,9 @@ function recommendMotorForJoint(joint, requirements = {}) {
   const peak = Number(joint.peak) || 0;
   const type = joint.type;
   const preferredMotorType = joint.preferredMotorType;
-  const hardFamily = !!joint.hardFamily && !!preferredMotorType;
+  // 允许的类型集合（第一个为首选）；优先用 familyTypes，其次单个 preferredMotorType
+  const familyTypes = Array.isArray(joint.familyTypes) ? joint.familyTypes.filter(Boolean) : [];
+  const hardFamily = !!joint.hardFamily && (familyTypes.length > 0 || !!preferredMotorType);
   const speedDeg = Number(joint.speed) || 0;
 
   const maxBacklash = requirements.maxBacklash || null;
@@ -2170,7 +2202,9 @@ function recommendMotorForJoint(joint, requirements = {}) {
 
   // 类型偏好
   let preferredTypes = [];
-  if (preferredMotorType) {
+  if (familyTypes.length) {
+    preferredTypes = familyTypes.slice();
+  } else if (preferredMotorType) {
     preferredTypes = [preferredMotorType];
   } else if (type === '重载') {
     preferredTypes = ['行星模组', '谐波模组', '摆线模组'];
@@ -2203,7 +2237,9 @@ function recommendMotorForJoint(joint, requirements = {}) {
   // 用户显式选了「全行星 / 全谐波」时，类型是硬约束：
   // 先在该类型内部逐级放宽，实在没有才允许跨类型
   function inFamily(p) {
-    return !hardFamily || p.type === preferredMotorType;
+    if (!hardFamily) return true;
+    if (preferredTypes.indexOf(p.type) >= 0) return true;
+    return false;
   }
 
   let candidates = PRODUCTS.filter(p =>
@@ -2233,7 +2269,7 @@ function recommendMotorForJoint(joint, requirements = {}) {
       candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p));
     }
     if (candidates.length > 0) {
-      relaxed = preferredMotorType + '范围内无满足型号，已跨类型推荐';
+      relaxed = (preferredTypes[0] || preferredMotorType) + '范围内无满足型号，已跨类型推荐';
     }
   }
 
@@ -2248,9 +2284,10 @@ function recommendMotorForJoint(joint, requirements = {}) {
     return underR * 1000 + underK * 1000 + overR * 10 + overK * 10;
   }
 
-  // 只有关节显式指定了模组类型（人形混动配置）时才强制类型优先；
-  // 否则一律按「重量最轻」——与官方 WorkBench ARM SIZING 一致
-  const strictPreferred = !!preferredMotorType;
+  // 类型优先只在「软偏好」时生效（未锁定族）。
+  // 一旦 hardFamily 锁定了允许的类型集合，集合内部就按重量决定，
+  // 否则 familyTypes 的书写顺序会变成硬优先级（例如只选 RH 不选更轻的 HM）。
+  const strictPreferred = !!preferredMotorType && !hardFamily;
 
   function typeRank(p) {
     const i = preferredTypes.indexOf(p.type);
@@ -2483,6 +2520,7 @@ function renderRobotSolution(solution) {
               let displayVal = val;
               if (key === 'motorConfig') {
                 const configMap = {
+                  'auto': '智能推荐',
                   'mixed': '上半身行星+下半身谐波',
                   'all_planetary': '全行星模组',
                   'all_harmonic': '全谐波模组'
@@ -2711,18 +2749,19 @@ function updateSolutionParams() {
         </div>
       `;
     } else if (key === 'motorConfig') {
+      const opts = template.motorConfigOptions || [
+        { value: 'mixed', label: '上半身行星 + 下半身谐波' },
+        { value: 'all_planetary', label: '全行星模组（全身）' },
+        { value: 'all_harmonic', label: '全谐波模组（全身）' }
+      ];
+      const hint = template.motorConfigHint || '';
       html += `
         <div class="form-group">
           <label>${label}</label>
           <select id="sol-${key}">
-            <option value="mixed">上半身行星 + 下半身谐波</option>
-            <option value="all_planetary">全行星模组（全身）</option>
-            <option value="all_harmonic">全谐波模组（全身）</option>
+            ${opts.map(o => '<option value="' + o.value + '">' + o.label + '</option>').join('')}
           </select>
-          <div style="font-size:11.5px;color:#667788;margin-top:6px;line-height:1.6;">
-            选定后按该组成硬性选型，不会擅自跨类型。<br>
-            行星背隙 10~15 弧分，若背隙要求更严会自动放宽并标注。
-          </div>
+          ${hint ? '<div style="font-size:11.5px;color:#667788;margin-top:6px;line-height:1.6;">' + hint + '</div>' : ''}
         </div>
       `;
     } else if (key === 'j1Axis') {
