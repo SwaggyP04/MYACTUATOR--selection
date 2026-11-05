@@ -273,9 +273,9 @@ const ROBOT_CONFIGS = {
 // 当前选中的机器人类型
 let currentRobotType = 'arm';
 
-// 初始化Build-a-Bot
 function initBuildBot() {
   const typeSelect = document.getElementById('bb-type');
+  if (!typeSelect) return;
   typeSelect.innerHTML = '';
   Object.entries(ROBOT_CONFIGS).forEach(([key, config]) => {
     const opt = document.createElement('option');
@@ -283,146 +283,112 @@ function initBuildBot() {
     opt.textContent = config.name;
     typeSelect.appendChild(opt);
   });
+  bbState.type = currentRobotType;
   typeSelect.value = currentRobotType;
-  renderBuildBotJoints();
+  bbLoadDefaults();
+  renderBuildBot();
 }
 
-// 渲染关节列表
-function renderBuildBotJoints() {
-  const config = ROBOT_CONFIGS[currentRobotType];
-  const container = document.getElementById('bb-joints');
-  
-  let html = `<div style="margin-bottom:15px;color:#889;font-size:13px;">
-    <strong>${config.name}</strong> · 共 ${config.joints.length} 个关节 · 为每个关节选择电机型号
-  </div>`;
-  
-  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">';
-  
-  config.joints.forEach((joint, idx) => {
-    const motorOptions = PRODUCTS.map(p => 
-      `<option value="${p.short}" ${p.short === joint.defaultMotor ? 'selected' : ''}>${p.short} (${p.rated}/${p.peak}Nm)</option>`
-    ).join('');
-    
-    html += `<div style="background:rgba(255,255,255,0.03);border:1px solid #2a3038;border-radius:8px;padding:12px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="background:#4af;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;">${idx+1}</span>
-        <span style="font-size:13px;font-weight:bold;">${joint.name}</span>
-      </div>
-      <select id="bb-motor-${joint.id}" style="width:100%;padding:8px;background:#0d1117;border:1px solid #445;border-radius:4px;color:#e6edf3;font-size:13px;" onchange="updateBuildBotSummary()">
-        ${motorOptions}
-      </select>
-    </div>`;
-  });
-  
-  html += '</div>';
-  container.innerHTML = html;
-  updateBuildBotSummary();
-}
 
-// 更新汇总信息
+
 function updateBuildBotSummary() {
-  const config = ROBOT_CONFIGS[currentRobotType];
-  let totalWeight = 0;
-  let totalPower = 0;
-  let totalRatedTorque = 0;
-  let totalPeakTorque = 0;
-  const motorCounts = {};
-  
-  config.joints.forEach(joint => {
-    const select = document.getElementById(`bb-motor-${joint.id}`);
-    if (!select) return;
-    const motorShort = select.value;
-    const motor = PRODUCTS.find(p => p.short === motorShort);
-    if (motor) {
-      totalWeight += motor.weight || 0;
-      totalPower += motor.power || 0;
-      totalRatedTorque += motor.rated || 0;
-      totalPeakTorque += motor.peak || 0;
-      motorCounts[motorShort] = (motorCounts[motorShort] || 0) + 1;
+  const box = document.getElementById('bb-summary');
+  const prog = document.getElementById('bb-progress');
+  if (!box) return;
+
+  const config = ROBOT_CONFIGS[bbState.type];
+  let mass = 0, contI = 0, peakI = 0, power = 0;
+  let worstBacklash = null;
+  const volts = {};
+  let filled = 0;
+  const problems = [];
+
+  config.joints.forEach(j => {
+    const m = bbGetMotor(j.id);
+    if (!m) { problems.push(j.name + '：未配置'); return; }
+    filled++;
+    mass += m.weight || 0;
+    contI += m.ratedCurrent || 0;
+    peakI += m.peakCurrent || 0;
+    power += m.power || 0;
+    if (m.backlash != null) worstBacklash = (worstBacklash == null) ? m.backlash : Math.max(worstBacklash, m.backlash);
+    if (m.voltage != null) volts[m.voltage] = true;
+    if ((m.rated || 0) < j._needRated || (m.peak || 0) < j._needPeak) {
+      problems.push(j.name + '：扭矩不足（需 ' + (Math.round(j._needRated * 10) / 10) + '/' +
+        (Math.round(j._needPeak * 10) / 10) + '，实 ' + (m.rated || 0) + '/' + (m.peak || 0) + '）');
     }
   });
-  
-  const container = document.getElementById('bb-summary');
-  let html = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:15px;">
-    <div style="background:rgba(74,170,255,0.1);padding:15px;border-radius:8px;text-align:center;">
-      <div style="color:#889;font-size:12px;">关节数量</div>
-      <div style="font-size:24px;font-weight:bold;color:#4af;">${config.joints.length}</div>
-    </div>
-    <div style="background:rgba(255,170,68,0.1);padding:15px;border-radius:8px;text-align:center;">
-      <div style="color:#889;font-size:12px;">总重量</div>
-      <div style="font-size:24px;font-weight:bold;color:#fa4;">${totalWeight.toFixed(2)} kg</div>
-    </div>
-    <div style="background:rgba(102,255,170,0.1);padding:15px;border-radius:8px;text-align:center;">
-      <div style="color:#889;font-size:12px;">总功率</div>
-      <div style="font-size:24px;font-weight:bold;color:#6fa;">${totalPower} W</div>
-    </div>
-    <div style="background:rgba(255,102,102,0.1);padding:15px;border-radius:8px;text-align:center;">
-      <div style="color:#889;font-size:12px;">总峰值扭矩</div>
-      <div style="font-size:24px;font-weight:bold;color:#f66;">${totalPeakTorque} Nm</div>
-    </div>
-  </div>`;
-  
-  // 电机型号统计
-  html += '<div style="background:rgba(255,255,255,0.03);padding:15px;border-radius:8px;">';
-  html += '<div style="color:#889;font-size:12px;margin-bottom:10px;">📦 BOM 物料清单（电机部分）</div>';
-  html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
-  Object.entries(motorCounts).forEach(([model, count]) => {
-    const motor = PRODUCTS.find(p => p.short === model);
-    html += `<span style="background:rgba(74,170,255,0.15);border:1px solid rgba(74,170,255,0.3);padding:6px 12px;border-radius:20px;font-size:13px;">
-      <strong>${model}</strong> × ${count} <span style="color:#889;font-size:11px;">(${motor ? motor.type : ''})</span>
-    </span>`;
-  });
-  html += '</div></div>';
-  
-  container.innerHTML = html;
+
+  const voltList = Object.keys(volts).map(Number).sort((a, b) => a - b);
+  const busVolt = voltList.length === 0 ? null : (voltList.length === 1 ? voltList[0] : null);
+  if (voltList.length > 1) problems.push('混用电压：' + voltList.join(' V / ') + ' V');
+
+  const psu = Math.ceil(power * 1.3 / 10) * 10;
+
+  if (prog) {
+    prog.innerHTML = (problems.length
+      ? `<span class="bb-problem">⚠ ${problems.length} 个问题</span>`
+      : `<span class="bb-ok">✓ 无异常</span>`) +
+      `　已完成 <b>${filled}/${config.joints.length}</b>`;
+  }
+
+  const r2 = v => (Math.round(v * 100) / 100);
+  let html = '';
+  html += `<div class="bb-kv"><span>已完成关节</span><b>${filled}/${config.joints.length}</b></div>`;
+  html += `<div class="bb-kv"><span>总重量</span><b>${r2(mass)} kg</b></div>`;
+  html += `<div class="bb-kv"><span>总线电压</span><b>${busVolt != null ? busVolt + ' V' : (voltList.length ? '混合' : '—')}</b></div>`;
+  html += `<div class="bb-kv"><span>最差背隙</span><b>${worstBacklash != null ? worstBacklash + ' arcmin' : '—'}</b></div>`;
+  html += `<div class="bb-kv"><span>连续电流</span><b>${contI ? r2(contI) + ' A' : '—'}</b></div>`;
+  html += `<div class="bb-kv"><span>峰值电流（全部同时）</span><b>${peakI ? r2(peakI) + ' A' : '—'}</b></div>`;
+  html += `<div class="bb-kv"><span>连续功率</span><b>${power ? Math.round(power) + ' W' : '—'}</b></div>`;
+  html += `<div class="bb-kv"><span>建议电源（+30%）</span><b class="bb-strong">${busVolt != null ? busVolt + ' V' : ''} ≥ ${psu} W</b></div>`;
+
+  if (problems.length) {
+    html += '<div class="bb-problems">';
+    problems.slice(0, 6).forEach(p => { html += '<div class="bb-problem-line">● ' + p + '</div>'; });
+    if (problems.length > 6) html += '<div class="bb-problem-line">… 另有 ' + (problems.length - 6) + ' 项</div>';
+    html += '</div>';
+  }
+
+  box.innerHTML = html;
 }
 
-// 切换机器人类型
 function switchRobotType() {
-  currentRobotType = document.getElementById('bb-type').value;
-  renderBuildBotJoints();
+  const sel = document.getElementById('bb-type');
+  if (!sel) return;
+  bbState.type = sel.value;
+  currentRobotType = sel.value;
+  bbState.selected = null;
+  bbLoadDefaults();
+  renderBuildBot();
 }
 
-// 导出BOM清单
 function exportBOM() {
-  const config = ROBOT_CONFIGS[currentRobotType];
-  const rows = [['序号', '关节编号', '关节名称', '电机型号', '额定扭矩(Nm)', '峰值扭矩(Nm)', '额定转速(rpm)', '功率(W)', '电压(V)', '重量(kg)', '通讯协议']];
-  
-  config.joints.forEach((joint, idx) => {
-    const select = document.getElementById(`bb-motor-${joint.id}`);
-    const motorShort = select ? select.value : '';
-    const motor = PRODUCTS.find(p => p.short === motorShort);
+  const config = ROBOT_CONFIGS[bbState.type];
+  const rows = [[
+    '序号', '关节', '电机型号', '类型',
+    '额定扭矩(Nm)', '峰值扭矩(Nm)', '额定转速(rpm)', '功率(W)', '电压(V)',
+    '连续电流(A)', '峰值电流(A)', '背隙', '重量(kg)', '通讯'
+  ]];
+
+  let mass = 0, power = 0;
+  config.joints.forEach((j, idx) => {
+    const m = bbGetMotor(j.id);
+    if (m) { mass += m.weight || 0; power += m.power || 0; }
     rows.push([
-      idx + 1,
-      joint.id.toUpperCase(),
-      joint.name,
-      motorShort,
-      motor ? motor.rated : '',
-      motor ? motor.peak : '',
-      motor ? motor.speed : '',
-      motor ? motor.power : '',
-      motor ? motor.voltage : '',
-      motor ? motor.weight : '',
-      motor ? motor.comm : ''
+      idx + 1, j.name,
+      m ? (m.short || m.full) : '未配置',
+      m ? (m.type || '') : '',
+      m ? m.rated : '', m ? m.peak : '', m ? m.speed : '', m ? m.power : '', m ? m.voltage : '',
+      m ? m.ratedCurrent : '', m ? m.peakCurrent : '', m ? m.backlash : '',
+      m ? m.weight : '', m ? m.comm : ''
     ]);
   });
-  
-  // 汇总行
-  const totalWeight = config.joints.reduce((sum, joint) => {
-    const select = document.getElementById(`bb-motor-${joint.id}`);
-    const motor = select ? PRODUCTS.find(p => p.short === select.value) : null;
-    return sum + (motor ? motor.weight || 0 : 0);
-  }, 0);
-  const totalPower = config.joints.reduce((sum, joint) => {
-    const select = document.getElementById(`bb-motor-${joint.id}`);
-    const motor = select ? PRODUCTS.find(p => p.short === select.value) : null;
-    return sum + (motor ? motor.power || 0 : 0);
-  }, 0);
-  
-  rows.push(['', '', '合计', '', '', '', '', totalPower + 'W', '', totalWeight.toFixed(2) + 'kg', '']);
-  
-  // 用现有的exportToExcel函数
-  exportToExcel(rows, `${config.name.replace(/[🤖🦾🐕🚗]/g, '').trim()}_BOM清单.xlsx`);
+
+  rows.push(['', '合计', '', '', '', '', '', Math.round(power) + 'W', '', '', '', '', mass.toFixed(2) + 'kg', '']);
+
+  const name = config.name.replace(/[🤖🦾🐕🚗]/g, '').trim();
+  exportToExcel(rows, `${name}_BOM清单.xlsx`);
 }
 
 // ===== 产品详情弹窗（增强版，含电气参数和堵转数据） =====
@@ -625,3 +591,203 @@ document.addEventListener('DOMContentLoaded', () => {
     renderFaultLibrary();
   }
 });
+
+
+// ═══════════ Build-a-Bot 三栏界面 ═══════════
+let bbState = {
+  type: 'arm',
+  assignments: {},
+  selected: null
+};
+
+function bbLoadDefaults() {
+  const config = ROBOT_CONFIGS[bbState.type];
+  if (!config) return;
+  bbState.assignments = {};
+  config.joints.forEach(j => {
+    const dm = PRODUCTS.find(p => p.short === j.defaultMotor);
+    j._needRated = dm ? (dm.rated || 0) : 0;
+    j._needPeak = dm ? (dm.peak || 0) : 0;
+    if (dm) bbState.assignments[j.id] = dm.full;
+  });
+  if (!bbState.selected || !config.joints.some(j => j.id === bbState.selected)) {
+    bbState.selected = config.joints[0] ? config.joints[0].id : null;
+  }
+}
+
+function bbGetMotor(jointId) {
+  const full = bbState.assignments[jointId];
+  if (!full) return null;
+  return PRODUCTS.find(p => p.full === full) || null;
+}
+
+function renderBuildBot() {
+  renderBuildBotSlots();
+  renderBuildBotLibrary();
+  updateBuildBotSummary();
+  renderBuildBotDetail();
+}
+
+function renderBuildBotSlots() {
+  const box = document.getElementById('bb-slot-list');
+  if (!box) return;
+  const config = ROBOT_CONFIGS[bbState.type];
+  const r2 = v => (v == null ? '—' : (Math.round(v * 10) / 10));
+
+  let html = '';
+  config.joints.forEach((j, idx) => {
+    const m = bbGetMotor(j.id);
+    const isSel = j.id === bbState.selected;
+    const short = m ? (m.short || m.full) : '未配置';
+    const okTorque = m ? ((m.rated || 0) >= j._needRated && (m.peak || 0) >= j._needPeak) : false;
+    const cls = !m ? 'empty' : (okTorque ? 'ok' : 'warn');
+    html += `<div class="bb-slot ${isSel ? 'sel' : ''} ${cls}" onclick="bbSelectJoint('${j.id}')">
+      <span class="bb-slot-no">${idx + 1}</span>
+      <span class="bb-slot-body">
+        <span class="bb-slot-name">${j.name}</span>
+        <span class="bb-slot-motor">${short}</span>
+      </span>
+      <span class="bb-slot-need">${r2(j._needPeak)}</span>
+    </div>`;
+  });
+  box.innerHTML = html;
+}
+
+function renderBuildBotLibrary() {
+  const box = document.getElementById('bb-lib-list');
+  if (!box) return;
+
+  const q = (document.getElementById('bb-search') || {}).value || '';
+  const kw = q.trim().toLowerCase();
+  const TYPES = ['行星模组', '谐波模组', '轻量谐波', '摆线模组', '中空直驱'];
+
+  let list = PRODUCTS.filter(p => TYPES.indexOf(p.type) >= 0);
+  if (kw) {
+    list = list.filter(p =>
+      String(p.full).toLowerCase().indexOf(kw) >= 0 ||
+      String(p.short || '').toLowerCase().indexOf(kw) >= 0 ||
+      String(p.type || '').toLowerCase().indexOf(kw) >= 0
+    );
+  }
+  list = list.slice().sort((a, b) => (a.weight == null ? 999 : a.weight) - (b.weight == null ? 999 : b.weight));
+
+  const r1 = v => (v == null ? '—' : (Math.round(v * 10) / 10));
+
+  let html = '';
+  if (!list.length) {
+    html = '<div class="bb-empty">没有匹配的型号</div>';
+  }
+  list.slice(0, 120).forEach(p => {
+    const used = Object.keys(bbState.assignments).some(k => bbState.assignments[k] === p.full);
+    html += `<div class="bb-lib-item ${used ? 'used' : ''}" onclick="bbAssign('${String(p.full).replace(/'/g, "\\'")}')">
+      <div class="bb-lib-name">${p.short || p.full}${used ? '<span class="bb-used-tag">已用</span>' : ''}</div>
+      <div class="bb-lib-spec">
+        峰 ${r1(p.peak)} N·m · 额 ${r1(p.rated)} · ${p.weight != null ? p.weight + ' kg' : '—'} · ${p.voltage != null ? p.voltage + ' V' : '—'}
+      </div>
+    </div>`;
+  });
+  if (list.length > 120) {
+    html += `<div class="bb-empty">仅显示前 120 个（共 ${list.length} 个），请用搜索缩小范围</div>`;
+  }
+  box.innerHTML = html;
+}
+
+function renderBuildBotDetail() {
+  const box = document.getElementById('bb-detail');
+  if (!box) return;
+  const config = ROBOT_CONFIGS[bbState.type];
+  const j = config.joints.find(x => x.id === bbState.selected);
+  if (!j) { box.innerHTML = ''; return; }
+
+  const m = bbGetMotor(j.id);
+  const r1 = v => (v == null ? '—' : (Math.round(v * 10) / 10));
+
+  let html = `<div class="bb-detail-head">
+    <div>
+      <div class="bb-detail-title">${j.name}</div>
+      <div class="bb-detail-need">需求：额 ${r1(j._needRated)} / 峰 ${r1(j._needPeak)} N·m</div>
+    </div>
+    <div class="bb-detail-current">${m ? (m.short || m.full) : '未配置'}</div>
+  </div>`;
+
+  if (m) {
+    const okTorque = (m.rated || 0) >= j._needRated && (m.peak || 0) >= j._needPeak;
+    html += `<div class="bb-detail-spec">
+      ${m.full} · ${m.type || ''} · 额 ${m.rated} / 峰 ${m.peak} N·m ·
+      ${m.speed != null ? m.speed + ' RPM' : '—'} · ${m.weight != null ? m.weight + ' kg' : '—'} ·
+      ${m.voltage != null ? m.voltage + ' V' : '—'}${m.backlash != null ? ' · 背隙 ' + m.backlash : ''}
+    </div>`;
+    if (!okTorque) {
+      html += `<div class="bb-detail-warn">⚠ <b>扭矩不足</b> —— 该关节需要 ${r1(j._needRated)}/${r1(j._needPeak)} N·m，此型号只有 ${m.rated}/${m.peak} N·m</div>`;
+    }
+    html += `<div class="bb-detail-actions">
+      <button class="bb-mini" onclick="bbClearJoint()">移除</button>
+    </div>`;
+  }
+
+  // 可替换：满足需求且按重量升序
+  const TYPES = ['行星模组', '谐波模组', '轻量谐波', '摆线模组', '中空直驱'];
+  const alts = PRODUCTS.filter(p =>
+    TYPES.indexOf(p.type) >= 0 &&
+    (p.rated || 0) >= j._needRated &&
+    (p.peak || 0) >= j._needPeak
+  ).sort((a, b) => (a.weight == null ? 999 : a.weight) - (b.weight == null ? 999 : b.weight)).slice(0, 8);
+
+  html += `<div class="bb-detail-sub">可替换（满足扭矩需求，按重量升序）</div>`;
+  if (!alts.length) {
+    html += '<div class="bb-empty">没有满足该关节需求的型号</div>';
+  } else {
+    html += '<div class="bb-alt-list">';
+    alts.forEach(p => {
+      const isCur = m && p.full === m.full;
+      html += `<div class="bb-alt ${isCur ? 'cur' : ''}" onclick="bbAssign('${String(p.full).replace(/'/g, "\\'")}')">
+        <span class="bb-alt-name">${p.short || p.full}</span>
+        <span class="bb-alt-spec">额 ${p.rated} / 峰 ${p.peak} N·m</span>
+        <span class="bb-alt-spec">${p.weight != null ? p.weight + ' kg' : '—'}</span>
+        <span class="bb-alt-spec">${p.speed != null ? p.speed + ' RPM' : '—'}</span>
+        ${isCur ? '<span class="bb-alt-cur">当前</span>' : ''}
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  box.innerHTML = html;
+}
+
+function bbSelectJoint(id) {
+  bbState.selected = id;
+  renderBuildBot();
+}
+
+function bbAssign(full) {
+  if (!bbState.selected) return;
+  bbState.assignments[bbState.selected] = full;
+  renderBuildBot();
+}
+
+function bbClearJoint() {
+  if (!bbState.selected) return;
+  delete bbState.assignments[bbState.selected];
+  renderBuildBot();
+}
+
+function bbReset() {
+  bbLoadDefaults();
+  renderBuildBot();
+}
+
+function bbAutoFill() {
+  const config = ROBOT_CONFIGS[bbState.type];
+  const TYPES = ['行星模组', '谐波模组', '轻量谐波', '摆线模组', '中空直驱'];
+  config.joints.forEach(j => {
+    const cands = PRODUCTS.filter(p =>
+      TYPES.indexOf(p.type) >= 0 &&
+      (p.rated || 0) >= j._needRated &&
+      (p.peak || 0) >= j._needPeak
+    ).sort((a, b) => (a.weight == null ? 999 : a.weight) - (b.weight == null ? 999 : b.weight));
+    if (cands.length) bbState.assignments[j.id] = cands[0].full;
+    else delete bbState.assignments[j.id];
+  });
+  renderBuildBot();
+}
+

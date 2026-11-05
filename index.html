@@ -257,7 +257,7 @@
     <span class="brand-sep"></span>
     <div class="brand-text">
       <h1>脉塔智能 <span>电机选型系统</span></h1>
-      <div class="subtitle">电机选型工具 · 产品库74款 · 2026年6月版</div>
+      <div class="subtitle">电机选型工具 · 产品库71款 · 2026年6月版</div>
     </div>
   </div>
   <div class="header-actions">
@@ -541,7 +541,7 @@
   <!-- ===== 产品库 ===== -->
   <div class="panel" id="panel-library">
     <div class="card">
-      <div class="card-title">产品库浏览（共47款）</div>
+      <div class="card-title">产品库浏览（共71款）</div>
       <div class="search-box">
         <input type="text" id="lib-search" placeholder="搜索型号，例如 X8-120、RH-25..." oninput="renderLibrary()">
       </div>
@@ -658,20 +658,40 @@
   <!-- ===== Build-a-Bot 拼装机器人 ===== -->
   <div class="panel" id="panel-build">
     <div class="card">
-      <div class="card-title">🔧 Build-a-Bot 机器人拼装配置</div>
-      <p style="color:#889;margin-bottom:20px;">选择机器人构型，为每个关节配置电机，自动计算总重量、总功率、BOM清单</p>
-      <div class="form-row">
-        <div class="form-group">
+      <div class="bb-toolbar">
+        <div class="bb-toolbar-left">
           <label>机器人构型</label>
-          <select id="bb-type" onchange="switchRobotType()" style="font-size:15px;padding:10px;">
-          </select>
+          <select id="bb-type" onchange="switchRobotType()"></select>
         </div>
+        <div class="bb-toolbar-right" id="bb-progress"></div>
       </div>
-      <div id="bb-summary" style="margin-bottom:20px;"></div>
-      <div id="bb-joints"></div>
-      <div class="btn-group" style="margin-top:20px;">
-        <button class="btn btn-primary" onclick="exportBOM()">📦 导出BOM清单 (Excel)</button>
+
+      <div class="bb-layout">
+        <aside class="bb-slots">
+          <div class="bb-col-title">关节槽位</div>
+          <div id="bb-slot-list"></div>
+        </aside>
+
+        <section class="bb-library">
+          <div class="bb-col-title">
+            <span>执行器库</span>
+            <input id="bb-search" placeholder="搜索型号…" oninput="renderBuildBotLibrary()">
+          </div>
+          <div id="bb-lib-list"></div>
+        </section>
+
+        <aside class="bb-summary-col">
+          <div class="bb-col-title">配置汇总</div>
+          <div id="bb-summary"></div>
+          <div class="bb-actions">
+            <button onclick="bbAutoFill()">⚡ 自动填充最优</button>
+            <button onclick="exportBOM()">📦 导出 BOM</button>
+            <button onclick="bbReset()">↺ 重置为默认</button>
+          </div>
+        </aside>
       </div>
+
+      <div class="bb-detail" id="bb-detail"></div>
     </div>
   </div>
 
