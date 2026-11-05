@@ -680,6 +680,7 @@
       <!-- 子标签 -->
       <div class="sup-tabs">
         <button class="sup-tab active" data-sub="envelope">🌡 工况校核</button>
+        <button class="sup-tab" data-sub="duty">📊 占空比</button>
         <button class="sup-tab" data-sub="faults">🔴 故障码</button>
         <button class="sup-tab" data-sub="tshoot">🧭 排障向导</button>
         <button class="sup-tab" data-sub="fields">📖 参数说明</button>
@@ -744,6 +745,46 @@
               </div>
             </div>
             <div id="env-findings"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 占空比校核 -->
+      <div class="sup-panel" id="sup-duty">
+        <div class="env-wrap">
+          <div class="card">
+            <div class="card-title">循环工况</div>
+            <p class="env-desc">
+              电机可以短时超过额定扭矩，只要整个循环的均方根（RMS）扭矩不超过额定值。
+              按实际工作循环填写各段的扭矩与时长，停留/空载段扭矩填 0。
+            </p>
+
+            <div class="env-field">
+              <label>对比型号</label>
+              <select id="duty-model" onchange="renderDutyResult()"></select>
+            </div>
+
+            <div style="margin:16px 0 6px;font-size:13px;color:#aabbcc;">循环分段</div>
+            <div id="duty-rows"></div>
+            <div style="margin:10px 0 16px;">
+              <button class="btn btn-secondary" style="width:100%;" onclick="dutyAdd()">＋ 增加一段</button>
+            </div>
+
+            <div class="env-actions">
+              <button class="btn btn-secondary" onclick="exportDutyExcel()">⬇ 导出 Excel 报告</button>
+            </div>
+
+            <div class="env-help">
+              RMS τ = √( Σ τᵢ²·tᵢ / Σ tᵢ )<br>
+              判定：RMS ≤ 额定扭矩，且每一段 ≤ 峰值扭矩。<br>
+              热等效只看 RMS，不看单段超出额定。
+            </div>
+          </div>
+
+          <div class="env-result">
+            <div class="card">
+              <div id="duty-result"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1195,6 +1236,7 @@ function initSupportTabs() {
       if (panel) panel.classList.add('active');
 
       if (sub === 'envelope') renderEnvelopeCheck();
+      else if (sub === 'duty') initDuty();
       else if (sub === 'faults') renderSupportFaults();
       else if (sub === 'tshoot') renderTshootHome();
       else if (sub === 'fields') renderSupportFields();
@@ -1468,6 +1510,7 @@ document.addEventListener('click', function (e) {
       var act = document.querySelector('.sup-tab.active');
       var sub = act ? act.getAttribute('data-sub') : 'envelope';
       if (sub === 'envelope') { initEnvModelSelect(); renderEnvelopeCheck(); }
+      else if (sub === 'duty') { initDuty(); }
       else if (sub === 'faults') renderSupportFaults();
       else if (sub === 'tshoot') renderTshootHome();
       else if (sub === 'fields') renderSupportFields();
@@ -1997,6 +2040,244 @@ function exportEnvelopeExcel() {
   const ds = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') +
              String(now.getDate()).padStart(2, '0');
   XLSX.writeFile(wb, '工况校核_' + safeName + '_' + ds + '.xlsx');
+}
+
+
+
+/* ═══════════ 占空比校核 ═══════════ */
+/* ═══════════════════════════════════════════════════════════════
+   占空比校核（Duty-cycle RMS）
+   ───────────────────────────────────────────────────────────────
+   电机可以在短时间内超过额定扭矩，只要整个循环的均方根扭矩不超过额定值。
+   输入一个循环的各段（扭矩, 时长），停留段扭矩填 0。
+
+   RMS τ = √( Σ τᵢ²·tᵢ / Σ tᵢ )
+   判定：RMS ≤ 额定扭矩  且  每一段 τᵢ ≤ 峰值扭矩
+   ═══════════════════════════════════════════════════════════════ */
+
+let dutySegments = [
+  { torque: 40, time: 0.5 },
+  { torque: 8,  time: 1.0 },
+  { torque: 0,  time: 0.5 }
+];
+
+function initDuty() {
+  const sel = document.getElementById('duty-model');
+  if (sel && sel.options.length === 0 && typeof PRODUCTS !== 'undefined') {
+    const types = ['行星模组', '谐波模组', '轻量谐波', '摆线模组', '中空直驱'];
+    let html = '';
+    PRODUCTS.forEach(p => {
+      if (types.indexOf(p.type) < 0) return;
+      const label = (p.short || p.full) + '  ·  ' + (p.rated != null ? p.rated : '?') +
+                    '/' + (p.peak != null ? p.peak : '?') + ' N·m';
+      html += '<option value="' + String(p.full).replace(/"/g, '&quot;') + '">' + label + '</option>';
+    });
+    sel.innerHTML = html;
+  }
+  renderDutyRows();
+  renderDutyResult();
+}
+
+function renderDutyRows() {
+  const box = document.getElementById('duty-rows');
+  if (!box) return;
+  if (!dutySegments.length) dutySegments.push({ torque: 0, time: 0 });
+
+  let html = '<div class="duty-head"><span>扭矩 (N·m)</span><span>时长 (s)</span><span></span></div>';
+  dutySegments.forEach((seg, i) => {
+    html += '<div class="duty-row">' +
+      '<input type="number" step="0.1" min="0" value="' + seg.torque + '" ' +
+        'oninput="dutySet(' + i + ',\'torque\',this.value)">' +
+      '<input type="number" step="0.1" min="0" value="' + seg.time + '" ' +
+        'oninput="dutySet(' + i + ',\'time\',this.value)">' +
+      '<button class="duty-del" onclick="dutyDel(' + i + ')" title="删除此段">✕</button>' +
+    '</div>';
+  });
+  box.innerHTML = html;
+}
+
+function dutySet(i, field, val) {
+  if (!dutySegments[i]) return;
+  dutySegments[i][field] = parseFloat(val) || 0;
+  renderDutyResult();
+}
+
+function dutyAdd() {
+  dutySegments.push({ torque: 0, time: 0.5 });
+  renderDutyRows();
+  renderDutyResult();
+}
+
+function dutyDel(i) {
+  if (dutySegments.length <= 1) return;
+  dutySegments.splice(i, 1);
+  renderDutyRows();
+  renderDutyResult();
+}
+
+function dutyCalc() {
+  const segs = dutySegments.filter(s => s.time > 0);
+  const cycleTime = segs.reduce((a, s) => a + s.time, 0);
+  if (cycleTime <= 0) return { rms: 0, peakSeg: 0, cycleTime: 0, segs: [] };
+  const sumsq = segs.reduce((a, s) => a + s.torque * s.torque * s.time, 0);
+  const rms = Math.sqrt(sumsq / cycleTime);
+  const peakSeg = segs.reduce((a, s) => Math.max(a, s.torque), 0);
+  return { rms, peakSeg, cycleTime, segs };
+}
+
+function renderDutyResult() {
+  const box = document.getElementById('duty-result');
+  if (!box) return;
+
+  const c = dutyCalc();
+  const sel = document.getElementById('duty-model');
+  const full = sel ? sel.value : '';
+  const p = (typeof PRODUCTS !== 'undefined' && full) ? PRODUCTS.find(x => x.full === full) : null;
+
+  const r1 = v => Math.round(v * 100) / 100;
+
+  const rated = p ? Number(p.rated) || 0 : 0;
+  const peakL = p ? Number(p.peak) || 0 : 0;
+
+  const rmsOk = c.rms <= rated;
+  const peakOk = c.peakSeg <= peakL;
+
+  let verdict, cls;
+  if (!p) { verdict = '未选择型号'; cls = 'env-tag-muted'; }
+  else if (!peakOk) { verdict = 'Exceeds peak · 超出峰值'; cls = 'env-tag-bad'; }
+  else if (!rmsOk) { verdict = 'Exceeds rated · 超出额定'; cls = 'env-tag-bad'; }
+  else if (c.rms > rated * 0.9 || c.peakSeg > peakL * 0.9) { verdict = 'Marginal · 临界'; cls = 'env-tag-warn'; }
+  else { verdict = 'Within cycle · 循环内可用'; cls = 'env-tag-ok'; }
+
+  const bar = (val, max, color) => {
+    const pct = max > 0 ? Math.min(100, (val / max) * 100) : 0;
+    return '<div class="duty-bar"><i style="width:' + pct.toFixed(1) + '%;background:' + color + '"></i></div>';
+  };
+
+  let html = '';
+  html += '<div class="env-verdict">';
+  html += '<span class="env-tag ' + cls + '">' + verdict + '</span>';
+  if (p) html += '<span class="env-model-name">' + (p.full || '') + '</span>';
+  html += '</div>';
+
+  html += '<div class="duty-summary">';
+  html += '<div class="duty-kv"><span>RMS 扭矩</span><b>' + r1(c.rms) + ' N·m</b></div>';
+  html += '<div class="duty-kv"><span>峰值段扭矩</span><b>' + r1(c.peakSeg) + ' N·m</b></div>';
+  html += '<div class="duty-kv"><span>循环时长</span><b>' + r1(c.cycleTime) + ' s</b></div>';
+  html += '</div>';
+
+  if (p) {
+    html += '<div class="duty-metric">';
+    html += '<div class="duty-metric-label">RMS <b>' + r1(c.rms) + '</b> / 额定 ' + rated + ' N·m</div>';
+    html += bar(c.rms, rated, rmsOk ? '#3fb950' : '#f85149');
+    html += '</div>';
+    html += '<div class="duty-metric">';
+    html += '<div class="duty-metric-label">峰值段 <b>' + r1(c.peakSeg) + '</b> / 峰值 ' + peakL + ' N·m</div>';
+    html += bar(c.peakSeg, peakL, peakOk ? '#3fb950' : '#f85149');
+    html += '</div>';
+  }
+
+  // 明细
+  const findings = [];
+  if (p) {
+    if (!peakOk) {
+      findings.push({ lv: 'danger', t: '有一段超过峰值扭矩',
+        x: '最大段 ' + r1(c.peakSeg) + ' N·m，该型号峰值只有 ' + peakL + ' N·m，无法实现。' });
+    }
+    if (!rmsOk) {
+      findings.push({ lv: 'danger', t: 'RMS 超过额定扭矩',
+        x: 'RMS ' + r1(c.rms) + ' N·m，额定 ' + rated + ' N·m，长时间运行会过温。' });
+    }
+    if (peakOk && rmsOk && c.rms > rated * 0.9) {
+      findings.push({ lv: 'warn', t: 'RMS 接近额定上限',
+        x: '已达 ' + Math.round(100 * c.rms / rated) + '%，建议留 10% 余量或改善散热。' });
+    }
+    if (peakOk && rmsOk && c.peakSeg > peakL * 0.9) {
+      findings.push({ lv: 'warn', t: '峰值段接近峰值上限',
+        x: '已达 ' + Math.round(100 * c.peakSeg / peakL) + '%。' });
+    }
+    if (!findings.length) {
+      findings.push({ lv: 'ok', t: `循环在能力范围内`,
+        x: 'RMS ' + r1(c.rms) + ' N·m ≤ 额定 ' + rated + '，峰值段 ' + r1(c.peakSeg) + ' ≤ 峰值 ' + peakL + '。' });
+    }
+  }
+
+  html += findings.map(f =>
+    '<div class="env-finding env-finding-' + (f.lv === 'ok' ? 'ok' : f.lv) + '">' +
+    '<div class="env-finding-title">' + (f.lv === 'danger' ? '●' : f.lv === 'warn' ? '▲' : '✔') + ' ' + f.t + '</div>' +
+    '<div class="env-finding-text">' + f.x + '</div></div>'
+  ).join('');
+
+  // 推荐能覆盖该循环的型号
+  if (typeof PRODUCTS !== 'undefined' && c.rms > 0) {
+    const types = ['行星模组', '谐波模组', '轻量谐波', '摆线模组', '中空直驱'];
+    const fits = PRODUCTS
+      .filter(x => types.indexOf(x.type) >= 0)
+      .filter(x => (Number(x.rated) || 0) >= c.rms && (Number(x.peak) || 0) >= c.peakSeg)
+      .sort((a, b) => (a.weight == null ? 999 : a.weight) - (b.weight == null ? 999 : b.weight))
+      .slice(0, 6);
+
+    html += '<div class="duty-fits">';
+    html += '<div class="duty-fits-title">能覆盖该循环的型号（额定 ≥ RMS 且 峰值 ≥ 最大段）· 按重量升序</div>';
+    if (!fits.length) {
+      html += '<div style="color:#f85149;font-size:13px;padding:8px 0;">没有型号能覆盖，需要更大规格或降低负载。</div>';
+    } else {
+      fits.forEach(f => {
+        html += '<div class="duty-fit-item">' +
+          '<span class="duty-fit-name">' + (f.short || f.full) + '</span>' +
+          '<span class="duty-fit-spec">额定 ' + f.rated + ' · 峰值 ' + f.peak + ' N·m</span>' +
+          '<span class="duty-fit-spec">' + (f.weight != null ? f.weight + ' kg' : '—') + '</span>' +
+          '<span class="duty-fit-spec">' + (f.voltage != null ? f.voltage + ' V' : '—') + '</span>' +
+        '</div>';
+      });
+    }
+    html += '</div>';
+  }
+
+  box.innerHTML = html;
+}
+
+/* ── 导出 Excel ── */
+function exportDutyExcel() {
+  const p = (function () {
+    const sel = document.getElementById('duty-model');
+    if (!sel || !sel.value || typeof PRODUCTS === 'undefined') return null;
+    return PRODUCTS.find(x => x.full === sel.value);
+  })();
+  if (!p) { alert('请先选择型号'); return; }
+  if (typeof XLSX === 'undefined') { alert('Excel 组件未加载'); return; }
+
+  const c = dutyCalc();
+  const r1 = v => Math.round(v * 100) / 100;
+
+  const rows = [
+    ['占空比 RMS 校核'],
+    ['生成时间', new Date().toLocaleString('zh-CN')],
+    [],
+    ['型号', p.full],
+    ['类型', p.type || ''],
+    ['额定扭矩', p.rated, 'N·m'],
+    ['峰值扭矩', p.peak, 'N·m'],
+    [],
+    ['循环分段', '扭矩 (N·m)', '时长 (s)', 'τ²·t'],
+  ];
+  c.segs.forEach(s => rows.push(['', s.torque, s.time, r1(s.torque * s.torque * s.time)]));
+  rows.push(['合计', '', r1(c.cycleTime), r1(c.segs.reduce((a, s) => a + s.torque * s.torque * s.time, 0))]);
+  rows.push([]);
+  rows.push(['RMS 扭矩', r1(c.rms), 'N·m']);
+  rows.push(['峰值段扭矩', r1(c.peakSeg), 'N·m']);
+  rows.push(['循环时长', r1(c.cycleTime), 's']);
+  rows.push([]);
+  rows.push(['RMS 判定', c.rms <= (Number(p.rated) || 0) ? '通过' : '超出', '额定 ' + p.rated]);
+  rows.push(['峰值判定', c.peakSeg <= (Number(p.peak) || 0) ? '通过' : '超出', '峰值 ' + p.peak]);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 20 }, { wch: 16 }, { wch: 14 }, { wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '占空比校核');
+  const now = new Date();
+  const ds = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+  XLSX.writeFile(wb, '占空比校核_' + (p.short || 'motor') + '_' + ds + '.xlsx');
 }
 
 </script>

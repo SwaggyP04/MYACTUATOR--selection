@@ -1222,3 +1222,115 @@ tr:hover { background: rgba(33,150,243,0.05); }
   color: #f85149;
   border: 1px solid rgba(248, 81, 73, .4);
 }
+/* ═══════════ 占空比校核 ═══════════ */
+.duty-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr 34px;
+  gap: 8px;
+  font-size: 11px;
+  color: #667788;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+.duty-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 34px;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.duty-row input {
+  width: 100%;
+  padding: 8px 10px;
+  background: #0d1117;
+  border: 1px solid #2a3a4a;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.duty-row input:focus { outline: none; border-color: #4a9eff; }
+.duty-del {
+  width: 30px;
+  height: 30px;
+  background: #161b22;
+  border: 1px solid #2a3a4a;
+  border-radius: 6px;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 0;
+}
+.duty-del:hover { border-color: #f85149; color: #f85149; }
+
+.duty-summary {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  margin: 14px 0 18px;
+}
+.duty-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.duty-kv span {
+  font-size: 11.5px;
+  color: #667788;
+}
+.duty-kv b {
+  font-size: 17px;
+  color: #e6edf3;
+  font-family: Consolas, monospace;
+}
+
+.duty-metric { margin-bottom: 14px; }
+.duty-metric-label {
+  font-size: 12.5px;
+  color: #aabbcc;
+  margin-bottom: 6px;
+}
+.duty-metric-label b { color: #e6edf3; }
+.duty-bar {
+  height: 14px;
+  background: #161b22;
+  border: 1px solid #2a3a4a;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.duty-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  transition: width .25s ease;
+}
+
+.duty-fits {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #1e2a36;
+}
+.duty-fits-title {
+  font-size: 12.5px;
+  color: #79c0ff;
+  margin-bottom: 10px;
+}
+.duty-fit-item {
+  display: grid;
+  grid-template-columns: 130px 1fr 80px 70px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #0d1117;
+  margin-bottom: 4px;
+  font-size: 12.5px;
+}
+.duty-fit-item:hover { background: #161b22; }
+.duty-fit-name {
+  font-family: Consolas, monospace;
+  color: #e6edf3;
+}
+.duty-fit-spec { color: #8b949e; }
