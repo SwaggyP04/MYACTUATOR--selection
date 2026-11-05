@@ -685,8 +685,21 @@ async function ghErrorText(r) {
       detail += ' (' + j.errors.map(e => e.message || e.code || JSON.stringify(e)).join('; ') + ')';
     }
   } catch (e) { /* 非 JSON 响应 */ }
-  if (r.status === 401) return 'HTTP 401 · 令牌失效，请重新登录';
-  if (r.status === 403) return 'HTTP 403 · 没有写权限（需仓库 Collaborator，且令牌 Contents 为 Read and write）';
+  if (r.status === 401) return 'HTTP 401 · 令牌失效或已过期，请重新生成令牌后登录';
+  if (r.status === 403) {
+    // 区分「令牌权限不足」和「不是协作者」——两者解决办法完全不同
+    if (/personal access token/i.test(detail)) {
+      return 'HTTP 403 · 令牌权限不足\n\n' +
+             '这个令牌只有「读」权限，保存需要「写」权限。重新生成令牌：\n' +
+             '1. 打开 https://github.com/settings/personal-access-tokens\n' +
+             '2. 编辑该令牌（或新建一个）\n' +
+             '3. Repository access 勾选 MYACTUATOR--selection\n' +
+             '4. Repository permissions → Contents → 改成 Read and write\n' +
+             '5. 保存后用新令牌重新登录后台\n\n' +
+             '原始响应：' + detail;
+    }
+    return 'HTTP 403 · 没有写权限（需该账号是仓库 Collaborator，且令牌 Contents 为 Read and write）' + (detail ? '\n原始响应：' + detail : '');
+  }
   if (r.status === 404) return 'HTTP 404 · 仓库或路径不存在（检查 CFG 里的 owner/repo/path）';
   if (r.status === 409) return 'HTTP 409 · 文件在别处被修改过（sha 过期）';
   if (r.status === 422) return 'HTTP 422 · 请求被拒绝' + (detail ? '：' + detail : '');
