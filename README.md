@@ -44,7 +44,7 @@ lib/                  第三方库（SheetJS / Mammoth / Tesseract）
 
 ## 数据来源
 
-2026 年 6 月产品手册与官方 datasheet。抱闸为定制选项，标准品为无抱闸版本。
+2026 年 6 月产品手册与官方 datasheet。**谐波模组（RH / HM 系列）标配抱闸，行星模组（X 系列）无抱闸。**
 
 ## 说明
 

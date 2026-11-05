@@ -612,7 +612,7 @@ window.SUPPORT_FIELD_HELP = {
     "en": "Bearing supporting the output flange. A cross-roller carries combined axial+radial+moment loads directly."
   },
   "brake": {
-    "zh": "抱闸：断电时是否保持位置。标准品通常为无抱闸（N 版），B 版带抱闸。",
+    "zh": "抱闸：断电时是否保持位置。谐波模组（RH / HM 系列）标配抱闸，行星模组（X 系列）无抱闸。",
     "en": "Holding brake. If present it keeps position with power off — important for vertical/lifting joints (safety)."
   },
   "axial_load_tensile_kN": {
