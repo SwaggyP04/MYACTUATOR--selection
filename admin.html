@@ -100,42 +100,12 @@
 <body>
 <div class="wrap">
 
-<!-- ══════════════ 第一道门：访问密码 ══════════════ -->
-<div id="gate" class="card" style="display:none">
-  <h1>🔒 受保护页面</h1>
-  <div class="sub">FAQ 管理后台 · 需要访问密码</div>
-
-  <div style="margin-top:24px">
-    <label>访问密码</label>
-    <input type="password" id="gateInput" placeholder="请输入访问密码"
-           onkeydown="if(event.key==='Enter')checkGate()" autocomplete="current-password">
-    <div class="hint">输入后 2 小时内无需重复输入</div>
-  </div>
-
-  <div class="row" style="margin-top:16px">
-    <button onclick="checkGate()">进入</button>
-    <span id="gateMsg" class="meta"></span>
-  </div>
-
-  <div class="help" style="margin-top:22px">
-    <b>这个页面需要两道验证：</b>
-    <ol>
-      <li><b>访问密码</b> —— 防止无关人员进入</li>
-      <li><b>GitHub 账号授权</b> —— 仅限仓库协作者，由 GitHub 服务端判定</li>
-    </ol>
-    <br>
-    没有仓库写权限的账号，即使知道密码也改不了任何内容。
-  </div>
-</div>
-
 <!-- ══════════════ 第二道门：GitHub 令牌 ══════════════ -->
 <div id="login" class="card" style="display:none">
   <h1>FAQ 管理后台</h1>
   <div class="sub">脉塔电机选型系统 · 仅限授权用户</div>
 
-  <div id="gatePassedBadge" style="margin-top:12px;padding:10px 14px;background:#0f2f1a;border:1px solid #238636;border-radius:6px;font-size:13px;color:#7ee787;">
-    ✔ 访问密码已验证 —— 下一步：GitHub 账号授权
-  </div>
+  
 
   <div class="help">
     <b>如何获取访问令牌（只需做一次）：</b>
@@ -186,8 +156,8 @@
       <button class="grow" style="visibility:hidden"></button>
       <span class="meta" id="dirtyInfo"></span>
       <button id="saveBtn" onclick="saveToGitHub()" disabled>保存到 GitHub</button>
-      <button class="sec" onclick="logout()" title="仅退出登录，保留访问密码">退出登录</button>
-      <button class="sec" onclick="logoutAll()" title="同时清除访问密码">完全退出</button>
+      <button class="sec" onclick="logout()" title="仅退出 GitHub 授权">退出登录</button>
+      <button class="sec" onclick="logoutAll()" title="清除授权并重新校验">完全退出</button>
     </div>
   </div>
 
@@ -210,19 +180,6 @@ const CFG = {
   repo:   'MYACTUATOR--selection',
   branch: 'main',
   path:   'data/faq.json',
-
-  // ═══════════════════════════════════════════════════════════
-  //  访问密码（第一道门）
-  //  gateHash = SHA-256(明文密码) 的十六进制
-  //  默认密码：crabcake
-  //  改密码方法见文末说明，或直接用浏览器控制台算：
-  //    crypto.subtle.digest('SHA-256', new TextEncoder().encode('新密码'))
-  //      .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-  // ═══════════════════════════════════════════════════════════
-  gateHash: '39ea97c014c2e055bff1e93bd9e1e7835cc213fe7be3a23ded4ca48f9bab1a71',
-
-  // 密码验证后多久内免再输（分钟）
-  gateMinutes: 120,
 
   // ═══════════════════════════════════════════════════════════
   //  授权名单（第二道门，GitHub 账号白名单）
@@ -299,62 +256,13 @@ function markDirty(v) {
 // ═══════════════════════════════════════════════════════════════
 //  登录
 // ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-//  第一道门：访问密码
-// ═══════════════════════════════════════════════════════════════
-const GATE_KEY = 'faq_gate_until';
-
-async function sha256hex(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function gateValid() {
-  const until = Number(localStorage.getItem(GATE_KEY) || 0);
-  return Date.now() < until;
-}
-
-async function checkGate() {
-  const input = document.getElementById('gateInput');
-  const msg = document.getElementById('gateMsg');
-  const pwd = input.value;
-  if (!pwd) { msg.textContent = '请输入密码'; return; }
-
-  msg.textContent = '校验中…';
-  let hex;
-  try {
-    hex = await sha256hex(pwd);
-  } catch (e) {
-    msg.textContent = '✘ 浏览器不支持 Web Crypto（请用 https 或 localhost 打开）';
-    return;
-  }
-
-  if (hex !== CFG.gateHash) {
-    msg.textContent = '✘ 密码错误';
-    input.value = '';
-    input.focus();
-    return;
-  }
-
-  localStorage.setItem(GATE_KEY, String(Date.now() + CFG.gateMinutes * 60000));
-  input.value = '';
-  showLoginScreen();
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  启动流程：密码门 → 令牌门 → 主体
-// ═══════════════════════════════════════════════════════════════
 function init() {
-  if (!gateValid()) {
-    document.getElementById('gate').style.display = 'block';
-    document.getElementById('gateInput')?.focus();
-    return;
-  }
+  // 外层访问控制由 Cloudflare Pages Functions 的 Basic Auth 完成，
+  // 这里直接进入 GitHub 令牌授权环节
   showLoginScreen();
 }
 
 function showLoginScreen() {
-  document.getElementById('gate').style.display = 'none';
   const saved = localStorage.getItem(LS_KEY);
   if (saved) {
     state.token = saved;
@@ -460,15 +368,12 @@ function logout() {
   location.reload();
 }
 
-// 退出时不清访问密码（只在超时后失效）
 function logoutAll() {
   localStorage.removeItem(LS_KEY);
-  localStorage.removeItem(GATE_KEY);
   location.reload();
 }
 
 function enterApp(login, permText) {
-  document.getElementById('gate').style.display = 'none';
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('repoInfo').textContent =
