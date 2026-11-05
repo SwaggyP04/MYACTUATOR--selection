@@ -1737,410 +1737,306 @@ const ROBOT_TEMPLATES = {
   }
 };
 
+// ── 关节扭矩模型（重力项 + 加速项）────────────────────────────
+//  T_static = load × g × arm                        重力保持力矩（最不利姿态）
+//  J        = load × inertiaArm²                    质点近似转动惯量
+//  α        = (speed°/s → rad/s) / 加速时间
+//  T_peak   = T_static + J·α                        峰值（重力 + 加速）
+//  T_rated  = T_static × 1.15                       连续（重力 + 摩擦余量）
+//
+//  · arm        重力力臂：垂直旋转轴（底座 yaw / 髋 yaw / 腕 roll）取小值
+//  · inertiaArm 惯量力臂：默认等于 arm，垂直轴需单独给
+const JOINT_G = 9.81;
+const JOINT_ACCEL_TIME = 0.15;    // s，加速到额定关节速度所需时间
+const JOINT_DUTY_CYCLE = 0.20;   // 连续运行等效占空比（热等效 RMS 折算）
+
+function jointTorques(o) {
+  const load = Math.max(0, Number(o.load) || 0);
+  const arm = Math.max(0, Number(o.arm) || 0);
+  const iArm = Math.max(0, Number(o.inertiaArm != null ? o.inertiaArm : arm) || 0);
+  const speedDeg = Math.max(0, Number(o.speed) || 0);
+  const t = Number(o.accelTime) > 0 ? Number(o.accelTime) : JOINT_ACCEL_TIME;
+
+  const tStatic = load * JOINT_G * arm;
+  const omega = speedDeg * Math.PI / 180;      // rad/s
+  const alpha = t > 0 ? omega / t : 0;          // rad/s²
+  const J = load * iArm * iArm;                 // kg·m²
+  const tAccel = J * alpha;
+  const peak = tStatic + tAccel;
+  const rated = tStatic * Math.sqrt(JOINT_DUTY_CYCLE);
+
+  const r1 = v => Math.round(v * 10) / 10;
+  return {
+    staticT: r1(tStatic),
+    accelT: r1(tAccel),
+    peak: r1(peak),
+    rated: r1(rated),
+    J: Math.round(J * 1000) / 1000,
+    alpha: r1(alpha)
+  };
+}
+
+// 统一的关节构造器
+function mkJoint(id, name, part, load, arm, speed, torqueType, priority, inertiaArm) {
+  const t = jointTorques({ load, arm, speed, inertiaArm });
+  return {
+    id: id,
+    name: name,
+    part: part,
+    dof: 1,
+    load: Math.round(Number(load) * 100) / 100,
+    arm: Math.round(Number(arm) * 1000) / 1000,
+    speed: speed,
+    staticT: t.staticT,
+    accelT: t.accelT,
+    peak: t.peak,
+    rated: t.rated,
+    type: torqueType,
+    priority: priority
+  };
+}
+
+// 左右镜像：把 l_ 前缀的关节复制成 r_ 版本
+function mirrorJoints(joints, partName) {
+  const left = joints.filter(j => j.part === '左' + partName);
+  return left.map(j => Object.assign({}, j, {
+    id: j.id.replace(/^l_/, 'r_'),
+    name: j.name.replace('左', '右'),
+    part: '右' + partName
+  }));
+}
+
 // 为人形机器人生成关节配置
 function generateHumanoidJoints(params) {
-  const { height, weight, payload, motorConfig } = params;
-  const h = height / 100; // 转换为米
-  
-  // 根据模组组成方案确定各部位偏好的模组类型
-  // mixed: 上半身(头部/左臂/右臂/躯干)行星，下半身(左腿/右腿)谐波
-  // all_planetary: 全部行星
-  // all_harmonic: 全部谐波
+  const height = Number(params.height) || 160;
+  const weight = Number(params.weight) || 50;
+  const payload = Number(params.payload) || 5;
+  const h = height / 100;
+
+  // 模组偏好：mixed = 上半身行星 / 下半身谐波
   const getPreferredType = (part) => {
-    if (motorConfig === 'all_planetary') return '行星模组';
-    if (motorConfig === 'all_harmonic') return '谐波模组';
-    // mixed
-    const upperParts = ['头部', '左臂', '右臂', '躯干'];
-    return upperParts.includes(part) ? '行星模组' : '谐波模组';
+    if (params.motorConfig === 'all_planetary') return '行星模组';
+    if (params.motorConfig === 'all_harmonic') return '谐波模组';
+    const upper = ['头部', '左臂', '右臂', '躯干'];
+    return upper.indexOf(part) >= 0 ? '行星模组' : '谐波模组';
   };
-  
-  // 基于身高估算各部位长度和重量（人体比例）
-  const armLength = h * 0.45;      // 臂长
-  const forearmLength = h * 0.25;  // 前臂长
-  const upperArmLength = h * 0.2;  // 上臂长
-  const legLength = h * 0.5;       // 腿长
-  const thighLength = h * 0.28;    // 大腿长
-  const shinLength = h * 0.22;     // 小腿长
-  
-  const upperBodyWeight = weight * 0.65;  // 上半身重量
-  const armWeight = weight * 0.05;        // 单臂重量
-  const legWeight = weight * 0.15;        // 单腿重量
-  const headWeight = weight * 0.06;       // 头部重量
-  
-  // 动态系数（运动时峰值扭矩/静态扭矩）
-  const dynamicFactor = 2.5;
-  
+
+  // 人体比例
+  const armLength = h * 0.45;
+  const forearmLength = h * 0.25;
+  const thighLength = h * 0.28;
+  const shinLength = h * 0.22;
+
+  const upperBodyWeight = weight * 0.65;
+  const armWeight = weight * 0.05;
+  const legWeight = weight * 0.15;
+  const headWeight = weight * 0.06;
+
   const joints = [];
-  
-  // 头部关节（2DOF）
-  joints.push({
-    id: 'neck_pitch', name: '颈部俯仰', part: '头部', dof: 1,
-    load: headWeight, arm: 0.1,
-    rated: Math.round(headWeight * 9.8 * 0.1 / dynamicFactor * 10) / 10,
-    peak: Math.round(headWeight * 9.8 * 0.1 * 10) / 10,
-    speed: 60, type: '轻载', priority: '低'
-  });
-  joints.push({
-    id: 'neck_yaw', name: '颈部旋转', part: '头部', dof: 1,
-    load: headWeight, arm: 0.05,
-    rated: Math.round(headWeight * 9.8 * 0.05 / dynamicFactor * 10) / 10,
-    peak: Math.round(headWeight * 9.8 * 0.05 * 10) / 10,
-    speed: 90, type: '轻载', priority: '低'
-  });
-  
-  // 左臂关节（7DOF）
-  // 肩关节3DOF
-  const shoulderTorque = (payload + armWeight * 0.5) * 9.8 * armLength;
-  joints.push({
-    id: 'l_shoulder_pitch', name: '左肩俯仰', part: '左臂', dof: 1,
-    load: payload + armWeight, arm: armLength,
-    rated: Math.round(shoulderTorque / dynamicFactor * 10) / 10,
-    peak: Math.round(shoulderTorque * 10) / 10,
-    speed: 90, type: '中载', priority: '高'
-  });
-  joints.push({
-    id: 'l_shoulder_roll', name: '左肩侧摆', part: '左臂', dof: 1,
-    load: payload + armWeight, arm: armLength * 0.8,
-    rated: Math.round(shoulderTorque * 0.8 / dynamicFactor * 10) / 10,
-    peak: Math.round(shoulderTorque * 0.8 * 10) / 10,
-    speed: 90, type: '中载', priority: '高'
-  });
-  joints.push({
-    id: 'l_shoulder_yaw', name: '左肩旋转', part: '左臂', dof: 1,
-    load: payload + armWeight, arm: forearmLength,
-    rated: Math.round((payload + armWeight * 0.3) * 9.8 * forearmLength / dynamicFactor * 10) / 10,
-    peak: Math.round((payload + armWeight * 0.3) * 9.8 * forearmLength * 10) / 10,
-    speed: 120, type: '中载', priority: '中'
-  });
-  // 肘关节1DOF
-  const elbowTorque = (payload + armWeight * 0.3) * 9.8 * forearmLength;
-  joints.push({
-    id: 'l_elbow', name: '左肘屈伸', part: '左臂', dof: 1,
-    load: payload + armWeight * 0.3, arm: forearmLength,
-    rated: Math.round(elbowTorque / dynamicFactor * 10) / 10,
-    peak: Math.round(elbowTorque * 10) / 10,
-    speed: 120, type: '中载', priority: '高'
-  });
-  // 腕关节3DOF
-  const wristTorque = payload * 9.8 * 0.1;
-  joints.push({
-    id: 'l_wrist_pitch', name: '左腕俯仰', part: '左臂', dof: 1,
-    load: payload, arm: 0.1,
-    rated: Math.round(wristTorque / dynamicFactor * 10) / 10,
-    peak: Math.round(wristTorque * 10) / 10,
-    speed: 180, type: '轻载', priority: '中'
-  });
-  joints.push({
-    id: 'l_wrist_roll', name: '左腕旋转', part: '左臂', dof: 1,
-    load: payload, arm: 0.05,
-    rated: Math.round(wristTorque * 0.5 / dynamicFactor * 10) / 10,
-    peak: Math.round(wristTorque * 0.5 * 10) / 10,
-    speed: 180, type: '轻载', priority: '中'
-  });
-  joints.push({
-    id: 'l_wrist_yaw', name: '左腕偏摆', part: '左臂', dof: 1,
-    load: payload, arm: 0.05,
-    rated: Math.round(wristTorque * 0.5 / dynamicFactor * 10) / 10,
-    peak: Math.round(wristTorque * 0.5 * 10) / 10,
-    speed: 180, type: '轻载', priority: '低'
-  });
-  
-  // 右臂（与左臂对称）
-  joints.push(...joints.filter(j => j.id.startsWith('l_') && j.part === '左臂').map(j => ({
-    ...j,
-    id: j.id.replace('l_', 'r_'),
-    name: j.name.replace('左', '右'),
-    part: '右臂'
-  })));
-  
-  // 腰部关节（2DOF）
-  const waistTorque = upperBodyWeight * 9.8 * 0.15;
-  joints.push({
-    id: 'waist_pitch', name: '腰部俯仰', part: '躯干', dof: 1,
-    load: upperBodyWeight, arm: 0.15,
-    rated: Math.round(waistTorque / dynamicFactor * 10) / 10,
-    peak: Math.round(waistTorque * 10) / 10,
-    speed: 60, type: '中载', priority: '高'
-  });
-  joints.push({
-    id: 'waist_yaw', name: '腰部旋转', part: '躯干', dof: 1,
-    load: upperBodyWeight, arm: 0.1,
-    rated: Math.round(waistTorque * 0.7 / dynamicFactor * 10) / 10,
-    peak: Math.round(waistTorque * 0.7 * 10) / 10,
-    speed: 60, type: '中载', priority: '中'
-  });
-  
-  // 左腿关节（6DOF）
-  // 髋关节3DOF
-  const hipTorque = (upperBodyWeight + legWeight) * 9.8 * thighLength;
-  joints.push({
-    id: 'l_hip_pitch', name: '左髋俯仰', part: '左腿', dof: 1,
-    load: upperBodyWeight + legWeight, arm: thighLength,
-    rated: Math.round(hipTorque / dynamicFactor * 10) / 10,
-    peak: Math.round(hipTorque * 10) / 10,
-    speed: 90, type: '重载', priority: '高'
-  });
-  joints.push({
-    id: 'l_hip_roll', name: '左髋侧摆', part: '左腿', dof: 1,
-    load: upperBodyWeight + legWeight, arm: thighLength * 0.8,
-    rated: Math.round(hipTorque * 0.8 / dynamicFactor * 10) / 10,
-    peak: Math.round(hipTorque * 0.8 * 10) / 10,
-    speed: 60, type: '重载', priority: '高'
-  });
-  joints.push({
-    id: 'l_hip_yaw', name: '左髋旋转', part: '左腿', dof: 1,
-    load: upperBodyWeight + legWeight, arm: shinLength,
-    rated: Math.round((upperBodyWeight + legWeight * 0.5) * 9.8 * shinLength / dynamicFactor * 10) / 10,
-    peak: Math.round((upperBodyWeight + legWeight * 0.5) * 9.8 * shinLength * 10) / 10,
-    speed: 60, type: '重载', priority: '中'
-  });
-  // 膝关节1DOF
-  const kneeTorque = (upperBodyWeight + legWeight * 0.5) * 9.8 * shinLength;
-  joints.push({
-    id: 'l_knee', name: '左膝屈伸', part: '左腿', dof: 1,
-    load: upperBodyWeight + legWeight * 0.5, arm: shinLength,
-    rated: Math.round(kneeTorque / dynamicFactor * 10) / 10,
-    peak: Math.round(kneeTorque * 10) / 10,
-    speed: 90, type: '重载', priority: '高'
-  });
-  // 踝关节2DOF
-  const ankleTorque = weight * 9.8 * 0.08;
-  joints.push({
-    id: 'l_ankle_pitch', name: '左踝俯仰', part: '左腿', dof: 1,
-    load: weight, arm: 0.08,
-    rated: Math.round(ankleTorque / dynamicFactor * 10) / 10,
-    peak: Math.round(ankleTorque * 10) / 10,
-    speed: 60, type: '中载', priority: '高'
-  });
-  joints.push({
-    id: 'l_ankle_roll', name: '左踝侧摆', part: '左腿', dof: 1,
-    load: weight, arm: 0.06,
-    rated: Math.round(ankleTorque * 0.7 / dynamicFactor * 10) / 10,
-    peak: Math.round(ankleTorque * 0.7 * 10) / 10,
-    speed: 30, type: '中载', priority: '高'
-  });
-  
-  // 右腿（与左腿对称）
-  joints.push(...joints.filter(j => j.id.startsWith('l_') && j.part === '左腿').map(j => ({
-    ...j,
-    id: j.id.replace('l_', 'r_'),
-    name: j.name.replace('左', '右'),
-    part: '右腿'
-  })));
-  
-  // 根据模组组成方案设置每个关节的偏好模组类型
-  joints.forEach(j => {
-    j.preferredMotorType = getPreferredType(j.part);
-  });
-  
+
+  // ── 头部 2DOF ──
+  joints.push(mkJoint('neck_pitch', '颈部俯仰', '头部', headWeight, 0.1, 60, '轻载', '低'));
+  joints.push(mkJoint('neck_yaw', '颈部旋转', '头部', headWeight, 0.05, 90, '轻载', '低'));
+
+  // ── 左臂 7DOF ──
+  const shoulderLoad = payload + armWeight * 0.5;
+  joints.push(mkJoint('l_shoulder_pitch', '左肩俯仰', '左臂', shoulderLoad, armLength, 90, '中载', '高'));
+  joints.push(mkJoint('l_shoulder_roll', '左肩侧摆', '左臂', shoulderLoad, armLength * 0.8, 90, '中载', '高'));
+  // 肩旋转是沿上臂轴的转动，重力力臂小，惯量力臂取前臂长
+  joints.push(mkJoint('l_shoulder_yaw', '左肩旋转', '左臂', payload + armWeight * 0.3, 0.06, 120, '中载', '中', forearmLength));
+
+  const elbowLoad = payload + armWeight * 0.3;
+  joints.push(mkJoint('l_elbow', '左肘屈伸', '左臂', elbowLoad, forearmLength, 120, '中载', '高'));
+  joints.push(mkJoint('l_wrist_pitch', '左腕俯仰', '左臂', payload, 0.1, 180, '轻载', '中'));
+  joints.push(mkJoint('l_wrist_roll', '左腕旋转', '左臂', payload, 0.05, 180, '轻载', '中', 0.1));
+  joints.push(mkJoint('l_wrist_yaw', '左腕偏摆', '左臂', payload, 0.05, 180, '轻载', '低'));
+
+  // ── 右臂镜像 ──
+  joints.push.apply(joints, mirrorJoints(joints, '臂'));
+
+  // ── 腰部 2DOF ──
+  joints.push(mkJoint('waist_pitch', '腰部俯仰', '躯干', upperBodyWeight, 0.15, 60, '中载', '高'));
+  // 腰部 yaw 是垂直轴
+  joints.push(mkJoint('waist_yaw', '腰部旋转', '躯干', upperBodyWeight, 0.08, 60, '中载', '中', 0.2));
+
+  // ── 左腿 6DOF ──
+  const hipLoad = upperBodyWeight + legWeight;
+  joints.push(mkJoint('l_hip_pitch', '左髋俯仰', '左腿', hipLoad, thighLength, 90, '重载', '高'));
+  joints.push(mkJoint('l_hip_roll', '左髋侧摆', '左腿', hipLoad, thighLength * 0.8, 60, '重载', '高'));
+  // 髋 yaw 绕垂直轴，不受重力矩，只克服惯量
+  joints.push(mkJoint('l_hip_yaw', '左髋旋转', '左腿', hipLoad, 0.06, 60, '重载', '中', thighLength));
+
+  joints.push(mkJoint('l_knee', '左膝屈伸', '左腿', upperBodyWeight + legWeight * 0.5, shinLength, 90, '重载', '高'));
+  // 单腿支撑时整机重量压在一只脚上
+  joints.push(mkJoint('l_ankle_pitch', '左踝俯仰', '左腿', weight, 0.08, 60, '中载', '高'));
+  joints.push(mkJoint('l_ankle_roll', '左踝侧摆', '左腿', weight, 0.06, 30, '中载', '高'));
+
+  // ── 右腿镜像 ──
+  joints.push.apply(joints, mirrorJoints(joints, '腿'));
+
+  joints.forEach(j => { j.preferredMotorType = getPreferredType(j.part); });
   return joints;
 }
 
 // 为机械臂生成关节配置
 function generateArmJoints(params) {
-  const { payload, reach, dof } = params;
-  const reachM = reach / 1000; // 转换为米
-  
-  // 估算各段长度
+  const payload = Number(params.payload) || 5;
+  const reachM = (Number(params.reach) || 800) / 1000;
+  const dof = Number(params.dof) || 6;
+
   const upperArmLen = reachM * 0.45;
-  const forearmLen = reachM * 0.4;
+  const forearmLen = reachM * 0.40;
   const wristLen = reachM * 0.15;
-  
-  // 估算各关节重量
-  const baseWeight = 8;
+
+  // 各段自重估算（与负载无关，按结构件估）
   const upperArmWeight = 4;
   const forearmWeight = 2.5;
   const wristWeight = 1;
-  
-  const dynamicFactor = 2.0;
+
   const joints = [];
-  
-  // J1 - 底座旋转
-  const j1Torque = (payload + forearmWeight + wristWeight) * 9.8 * reachM * 0.8;
-  joints.push({
-    id: 'j1', name: 'J1 底座旋转', part: '底座', dof: 1,
-    load: payload + forearmWeight + wristWeight, arm: reachM * 0.8,
-    rated: Math.round(j1Torque / dynamicFactor * 10) / 10,
-    peak: Math.round(j1Torque * 10) / 10,
-    speed: 120, type: '重载', priority: '高'
-  });
-  
-  // J2 - 大臂俯仰
-  const j2Torque = (payload + forearmWeight + wristWeight) * 9.8 * (upperArmLen + forearmLen);
-  joints.push({
-    id: 'j2', name: 'J2 大臂俯仰', part: '大臂', dof: 1,
-    load: payload + forearmWeight + wristWeight, arm: upperArmLen + forearmLen,
-    rated: Math.round(j2Torque / dynamicFactor * 10) / 10,
-    peak: Math.round(j2Torque * 10) / 10,
-    speed: 90, type: '重载', priority: '高'
-  });
-  
-  // J3 - 小臂俯仰
-  const j3Torque = (payload + wristWeight) * 9.8 * forearmLen;
-  joints.push({
-    id: 'j3', name: 'J3 小臂俯仰', part: '小臂', dof: 1,
-    load: payload + wristWeight, arm: forearmLen,
-    rated: Math.round(j3Torque / dynamicFactor * 10) / 10,
-    peak: Math.round(j3Torque * 10) / 10,
-    speed: 120, type: '中载', priority: '高'
-  });
-  
-  // J4 - 腕部旋转
-  const j4Torque = payload * 9.8 * wristLen * 0.5;
-  joints.push({
-    id: 'j4', name: 'J4 腕部旋转', part: '腕部', dof: 1,
-    load: payload, arm: wristLen * 0.5,
-    rated: Math.round(j4Torque / dynamicFactor * 10) / 10,
-    peak: Math.round(j4Torque * 10) / 10,
-    speed: 180, type: '轻载', priority: '中'
-  });
-  
-  // J5 - 腕部俯仰
-  const j5Torque = payload * 9.8 * wristLen;
-  joints.push({
-    id: 'j5', name: 'J5 腕部俯仰', part: '腕部', dof: 1,
-    load: payload, arm: wristLen,
-    rated: Math.round(j5Torque / dynamicFactor * 10) / 10,
-    peak: Math.round(j5Torque * 10) / 10,
-    speed: 180, type: '轻载', priority: '中'
-  });
-  
-  // J6 - 末端旋转
-  const j6Torque = payload * 9.8 * wristLen * 0.3;
-  joints.push({
-    id: 'j6', name: 'J6 末端旋转', part: '末端', dof: 1,
-    load: payload, arm: wristLen * 0.3,
-    rated: Math.round(j6Torque / dynamicFactor * 10) / 10,
-    peak: Math.round(j6Torque * 10) / 10,
-    speed: 240, type: '轻载', priority: '低'
-  });
-  
-  // 七轴机械臂增加J7
+  const distalLoad = payload + forearmWeight + wristWeight;   // 大臂以下的全部质量
+
+  // J1 底座旋转：垂直轴，重力项接近 0，主要克服整臂惯量
+  joints.push(mkJoint('j1', 'J1 底座旋转', '底座',
+    distalLoad + upperArmWeight, 0.05, 120, '重载', '高', reachM));
+
+  // J2 大臂俯仰：必须托起 负载 + 小臂 + 腕 + 上臂自重
+  joints.push(mkJoint('j2', 'J2 大臂俯仰', '大臂',
+    distalLoad + upperArmWeight, upperArmLen + forearmLen, 90, '重载', '高'));
+
+  // J3 小臂俯仰：负载 + 腕 + 半个小臂
+  joints.push(mkJoint('j3', 'J3 小臂俯仰', '小臂',
+    payload + wristWeight + forearmWeight * 0.5, forearmLen, 120, '中载', '高'));
+
+  // J4 腕部旋转：沿前臂轴，重力力臂小
+  joints.push(mkJoint('j4', 'J4 腕部旋转', '腕部',
+    payload, wristLen * 0.5, 180, '轻载', '中', wristLen));
+
+  // J5 腕部俯仰
+  joints.push(mkJoint('j5', 'J5 腕部俯仰', '腕部',
+    payload, wristLen, 180, '轻载', '中'));
+
+  // J6 末端旋转
+  joints.push(mkJoint('j6', 'J6 末端旋转', '末端',
+    payload, wristLen * 0.3, 240, '轻载', '低', wristLen * 0.5));
+
+  // 七轴冗余
   if (dof >= 7) {
-    joints.push({
-      id: 'j7', name: 'J7 冗余轴', part: '小臂', dof: 1,
-      load: payload + wristWeight, arm: forearmLen * 0.5,
-      rated: Math.round(j3Torque * 0.6 / dynamicFactor * 10) / 10,
-      peak: Math.round(j3Torque * 0.6 * 10) / 10,
-      speed: 120, type: '中载', priority: '中'
-    });
+    joints.push(mkJoint('j7', 'J7 冗余轴', '小臂',
+      payload + wristWeight, forearmLen * 0.5, 120, '中载', '中', forearmLen * 0.5));
   }
-  
+
   return joints;
 }
 
 // 为四足机器狗生成关节配置
 function generateQuadrupedJoints(params) {
-  const { weight, payload, legLength } = params;
-  const legLenM = legLength / 100; // 转换为米
-  
-  // 单腿承载重量（站立时约1/4，运动时可能达到1/2）
-  const legLoad = (weight + payload) / 2;
+  const weight = Number(params.weight) || 15;
+  const payload = Number(params.payload) || 5;
+  const legLenM = (Number(params.legLength) || 30) / 100;
+
   const thighLen = legLenM * 0.5;
   const shinLen = legLenM * 0.5;
-  
-  const dynamicFactor = 2.5;
+
+  // 运动时最多两条腿支撑，保守按 1/2 分配
+  const legLoad = (weight + payload) / 2;
+
+  const sides = ['左前', '右前', '左后', '右后'];
+  const prefixes = ['fl', 'fr', 'bl', 'br'];
   const joints = [];
-  
-  // 每条腿3个关节：髋侧摆、髋俯仰、膝屈伸
-  const legSides = ['左前', '右前', '左后', '右后'];
-  const legPrefixes = ['fl', 'fr', 'bl', 'br'];
-  
-  legSides.forEach((side, idx) => {
-    const prefix = legPrefixes[idx];
-    
-    // 髋侧摆（外展/内收）
-    const hipRollTorque = legLoad * 9.8 * thighLen * 0.5;
-    joints.push({
-      id: `${prefix}_hip_roll`, name: `${side}髋侧摆`, part: `${side}腿`, dof: 1,
-      load: legLoad, arm: thighLen * 0.5,
-      rated: Math.round(hipRollTorque / dynamicFactor * 10) / 10,
-      peak: Math.round(hipRollTorque * 10) / 10,
-      speed: 90, type: '中载', priority: '高'
-    });
-    
-    // 髋俯仰（前后摆动）
-    const hipPitchTorque = legLoad * 9.8 * (thighLen + shinLen);
-    joints.push({
-      id: `${prefix}_hip_pitch`, name: `${side}髋俯仰`, part: `${side}腿`, dof: 1,
-      load: legLoad, arm: thighLen + shinLen,
-      rated: Math.round(hipPitchTorque / dynamicFactor * 10) / 10,
-      peak: Math.round(hipPitchTorque * 10) / 10,
-      speed: 120, type: '重载', priority: '高'
-    });
-    
-    // 膝屈伸
-    const kneeTorque = legLoad * 9.8 * shinLen;
-    joints.push({
-      id: `${prefix}_knee`, name: `${side}膝屈伸`, part: `${side}腿`, dof: 1,
-      load: legLoad, arm: shinLen,
-      rated: Math.round(kneeTorque / dynamicFactor * 10) / 10,
-      peak: Math.round(kneeTorque * 10) / 10,
-      speed: 120, type: '重载', priority: '高'
-    });
+
+  sides.forEach((side, i) => {
+    const pf = prefixes[i];
+    joints.push(mkJoint(pf + '_hip_roll', side + '髋侧摆', side + '腿',
+      legLoad, thighLen * 0.5, 90, '中载', '高'));
+    joints.push(mkJoint(pf + '_hip_pitch', side + '髋俯仰', side + '腿',
+      legLoad, thighLen + shinLen, 120, '重载', '高'));
+    joints.push(mkJoint(pf + '_knee', side + '膝屈伸', side + '腿',
+      legLoad, shinLen, 120, '重载', '高'));
   });
-  
+
   return joints;
 }
 
 // 为夹爪/灵巧手生成关节配置
 function generateGripperJoints(params) {
-  const { gripForce, objectWeight, dof, type } = params;
-  
+  const gripForce = Number(params.gripForce) || 20;
+  const objectWeight = Number(params.objectWeight) || 1;
+  const dof = Math.max(1, Math.round(Number(params.dof) || 2));
+  const type = params.type || 'parallel';
+
+  const fingerLen = 0.08;
   const joints = [];
-  
+
   if (type === 'parallel' || dof <= 2) {
-    // 平行夹爪（2指）
-    const fingerLen = 0.08;
-    const gripTorque = gripForce * fingerLen;
-    
-    joints.push({
-      id: 'grip_left', name: '左指驱动', part: '夹爪', dof: 1,
-      load: objectWeight / 2, arm: fingerLen,
-      rated: Math.round(gripTorque * 0.5 * 10) / 10,
-      peak: Math.round(gripTorque * 10) / 10,
-      speed: 60, type: '轻载', priority: '高'
-    });
-    joints.push({
-      id: 'grip_right', name: '右指驱动', part: '夹爪', dof: 1,
-      load: objectWeight / 2, arm: fingerLen,
-      rated: Math.round(gripTorque * 0.5 * 10) / 10,
-      peak: Math.round(gripTorque * 10) / 10,
-      speed: 60, type: '轻载', priority: '高'
-    });
+    // 平行夹爪：两指各 1 个驱动关节
+    for (const side of ['左', '右']) {
+      const id = (side === '左' ? 'grip_left' : 'grip_right');
+      const j = mkJoint(id, side + '指驱动', '夹爪',
+        objectWeight / 2, fingerLen, 60, '轻载', '高');
+      // 夹持力直接给峰值（夹紧是静态操作，不需要加速度余量）
+      j.peak = Math.round(gripForce * fingerLen * 10) / 10;
+      j.staticT = j.peak;
+      j.accelT = 0;
+      j.rated = Math.round(gripForce * fingerLen * 0.5 * 10) / 10;
+      joints.push(j);
+    }
   } else {
-    // 灵巧手（多自由度）
+    // 灵巧手：把 dof 精确分配到 5 根手指（总数严格等于 dof）
     const fingers = Math.min(dof, 5);
-    const jointsPerFinger = Math.ceil(dof / fingers);
-    const fingerLen = 0.08;
-    
+    const per = [];
+    const base = Math.floor(dof / fingers);
+    const extra = dof % fingers;
+    for (let f = 0; f < fingers; f++) per.push(base + (f < extra ? 1 : 0));
+
     for (let f = 1; f <= fingers; f++) {
-      for (let j = 1; j <= jointsPerFinger; j++) {
-        const jointName = j === 1 ? '指根' : (j === 2 ? '指中' : '指尖');
-        const torque = gripForce * fingerLen * (j === 1 ? 1 : j === 2 ? 0.6 : 0.3);
-        joints.push({
-          id: `finger${f}_joint${j}`, name: `指${f}${jointName}`, part: '灵巧手', dof: 1,
-          load: objectWeight / fingers, arm: fingerLen * (1 - (j - 1) * 0.3),
-          rated: Math.round(torque * 0.4 * 100) / 100,
-          peak: Math.round(torque * 100) / 100,
-          speed: 90, type: '轻载', priority: j === 1 ? '高' : '中'
-        });
+      const n = per[f - 1];
+      for (let j = 1; j <= n; j++) {
+        const segName = j === 1 ? '指根' : (j === 2 ? '指中' : '指尖');
+        // 越靠指尖，夹持力折算越小
+        const segFactor = j === 1 ? 1 : (j === 2 ? 0.6 : 0.35);
+        const segLen = fingerLen * (1 - (j - 1) * 0.3);
+        const jj = mkJoint('finger' + f + '_joint' + j, '指' + f + segName, '灵巧手',
+          objectWeight / fingers, segLen, 90, '轻载', j === 1 ? '高' : '中');
+        jj.peak = Math.round(gripForce * fingerLen * segFactor * 10) / 10;
+        jj.staticT = jj.peak;
+        jj.accelT = 0;
+        jj.rated = Math.round(gripForce * fingerLen * segFactor * 0.5 * 10) / 10;
+        joints.push(jj);
       }
     }
   }
-  
+
   return joints;
 }
 
 // 为单个关节推荐电机
+// 为单个关节推荐电机
+//  · 硬性下限：额定扭矩与峰值扭矩都必须 ≥ 需求（不再允许欠配）
+//  · 转速校核：关节 °/s ÷ 6 = 所需输出轴 RPM，产品额定转速必须够
+//  · 计分非对称：欠配重罚（已由硬过滤排除），超配按超出比例轻罚
+//  · 稳定 tie-break：同分时优先 无抱闸 → 更轻 → 更小 → 型号名
 function recommendMotorForJoint(joint, requirements = {}) {
-  const { rated, peak, type, preferredMotorType } = joint;
-  const { maxBacklash, maxRepeatability } = requirements;
-  
-  // 根据关节类型选择优先的模组类型
+  const rated = Number(joint.rated) || 0;
+  const peak = Number(joint.peak) || 0;
+  const type = joint.type;
+  const preferredMotorType = joint.preferredMotorType;
+  const speedDeg = Number(joint.speed) || 0;
+
+  const maxBacklash = requirements.maxBacklash || null;
+  const maxRepeatability = requirements.maxRepeatability || null;
+
+  // 只从「完整关节模组」里选：无框电机（FL/FLO/CEM）没有外壳与输出轴承，
+  // 减速器只是传动件，二者都不能直接装到机器人关节上
+  const ACTUATOR_TYPES = ['行星模组', '谐波模组', '轻量谐波', '摆线模组', '中空直驱'];
+  function isActuator(p) { return ACTUATOR_TYPES.indexOf(p.type) >= 0; }
+
+  // 所需输出轴转速（关节 °/s 换算成输出轴 RPM）
+  const needRpm = speedDeg > 0 ? speedDeg / 6 : 0;
+
+  // 类型偏好
   let preferredTypes = [];
   if (preferredMotorType) {
-    // 如果有关节指定的偏好模组类型，优先使用
     preferredTypes = [preferredMotorType];
   } else if (type === '重载') {
     preferredTypes = ['行星模组', '谐波模组', '摆线模组'];
@@ -2149,67 +2045,112 @@ function recommendMotorForJoint(joint, requirements = {}) {
   } else {
     preferredTypes = ['轻量谐波', '谐波模组', '行星模组', '中空直驱'];
   }
-  
-  // 在所有产品中筛选
-  let candidates = PRODUCTS.filter(p => {
-    const ratedOk = !rated || p.rated >= rated - 5;
-    const peakOk = !peak || p.peak >= peak - 5;
-    // 背隙筛选（null表示无要求或不适用）
-    const backlashOk = !maxBacklash || p.backlash === null || p.backlash <= maxBacklash;
-    // 重复定位精度筛选
-    const accuracyOk = !maxRepeatability || p.repeatability === null || p.repeatability <= maxRepeatability;
-    return ratedOk && peakOk && backlashOk && accuracyOk;
-  });
-  
-  // 如果筛选后没有候选，放宽背隙和精度要求
-  if (candidates.length === 0) {
-    candidates = PRODUCTS.filter(p => {
-      const ratedOk = !rated || p.rated >= rated - 5;
-      const peakOk = !peak || p.peak >= peak - 5;
-      return ratedOk && peakOk;
-    });
+
+  // 硬性下限判断
+  function passesTorque(p) {
+    const r = Number(p.rated) || 0;
+    const k = Number(p.peak) || 0;
+    if (rated > 0 && r < rated) return false;
+    if (peak > 0 && k < peak) return false;
+    return true;
   }
-  
-  // 按偏好类型排序
-  candidates.sort((a, b) => {
-    const aTypeIdx = preferredTypes.indexOf(a.type);
-    const bTypeIdx = preferredTypes.indexOf(b.type);
-    if (aTypeIdx !== bTypeIdx) {
-      if (aTypeIdx === -1) return 1;
-      if (bTypeIdx === -1) return -1;
-      return aTypeIdx - bTypeIdx;
-    }
-    const aDiff = Math.abs(a.rated - rated) + Math.abs(a.peak - peak);
-    const bDiff = Math.abs(b.rated - rated) + Math.abs(b.peak - peak);
-    return aDiff - bDiff;
+  function passesSpeed(p) {
+    if (needRpm <= 0) return true;
+    const s = Number(p.speed);
+    if (!isFinite(s) || s <= 0) return true;   // 无转速数据的不排除
+    return s >= needRpm;
+  }
+  function passesQuality(p) {
+    if (maxBacklash && p.backlash != null && p.backlash > maxBacklash) return false;
+    if (maxRepeatability && p.repeatability != null && p.repeatability > maxRepeatability) return false;
+    return true;
+  }
+
+  // 三级降级：全条件 → 放宽精度/背隙 → 只保扭矩
+  let candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p) && passesSpeed(p) && passesQuality(p));
+  let relaxed = '';
+  if (candidates.length === 0) {
+    candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p) && passesSpeed(p));
+    if (candidates.length > 0) relaxed = '精度/背隙要求已放宽';
+  }
+  if (candidates.length === 0) {
+    candidates = PRODUCTS.filter(p => isActuator(p) && passesTorque(p));
+    if (candidates.length > 0) relaxed = '精度/背隙/转速要求已放宽';
+  }
+
+  // 计分：超配按比例轻罚；欠配理论上不会出现，出现则重罚
+  function score(p) {
+    const r = Number(p.rated) || 0;
+    const k = Number(p.peak) || 0;
+    const overR = rated > 0 ? Math.max(0, (r - rated) / rated) : 0;
+    const overK = peak > 0 ? Math.max(0, (k - peak) / peak) : 0;
+    const underR = rated > 0 ? Math.max(0, (rated - r) / rated) : 0;
+    const underK = peak > 0 ? Math.max(0, (peak - k) / peak) : 0;
+    return underR * 1000 + underK * 1000 + overR * 10 + overK * 10;
+  }
+
+  candidates = candidates.slice().sort((a, b) => {
+    // 1) 偏好类型
+    const ai = preferredTypes.indexOf(a.type);
+    const bi = preferredTypes.indexOf(b.type);
+    const aT = ai === -1 ? 99 : ai;
+    const bT = bi === -1 ? 99 : bi;
+    if (aT !== bT) return aT - bT;
+
+    // 2) 计分（越小越好）
+    const sa = score(a), sb = score(b);
+    if (Math.abs(sa - sb) > 0.8) return sa - sb;
+
+    // 3) 分数接近 → 稳定 tie-break
+    const aB = a.brake === '有' ? 1 : 0;
+    const bB = b.brake === '有' ? 1 : 0;
+    if (aB !== bB) return aB - bB;                     // 无抱闸优先
+
+    const aW = a.weight == null ? 999 : a.weight;
+    const bW = b.weight == null ? 999 : b.weight;
+    if (Math.abs(aW - bW) > 0.02) return aW - bW;      // 更轻优先
+
+    const aO = a.od == null ? 999 : a.od;
+    const bO = b.od == null ? 999 : b.od;
+    if (aO !== bO) return aO - bO;                     // 更小优先
+
+    return String(a.full).localeCompare(String(b.full));  // 最终稳定
   });
-  
+
   const top3 = candidates.slice(0, 3);
-  
-  // 计算首选电机的满足状态
-  let satisfaction = '暂无匹配';
+
+  // 满足状态
+  let satisfaction = '无满足型号';
   if (top3.length > 0) {
-    const primary = top3[0];
-    const ratedShort = rated ? Math.max(0, rated - primary.rated) : 0;
-    const peakShort = peak ? Math.max(0, peak - primary.peak) : 0;
-    const maxShort = Math.max(ratedShort, peakShort);
-    const overRatio = rated ? primary.rated / rated : 1;
-    
-    if (maxShort === 0 && overRatio <= 1.2) {
+    const p = top3[0];
+    const r = Number(p.rated) || 0;
+    const k = Number(p.peak) || 0;
+    const shortR = rated > 0 ? Math.max(0, rated - r) : 0;
+    const shortK = peak > 0 ? Math.max(0, peak - k) : 0;
+    const speedOk = passesSpeed(p);
+    const overR = rated > 0 ? r / rated : 1;
+
+    if (shortR > 0 || shortK > 0) {
+      satisfaction = '扭矩不足';
+    } else if (!speedOk) {
+      satisfaction = '转速不足';
+    } else if (overR <= 1.1) {
       satisfaction = '精确满足';
-    } else if (maxShort <= 5) {
+    } else if (overR <= 1.6) {
       satisfaction = '满足';
-    } else if (overRatio > 2) {
+    } else if (overR <= 3.0) {
       satisfaction = '满足但明显过配';
     } else {
-      satisfaction = '满足';
+      satisfaction = '满足但明显过配';
     }
   }
-  
+
   return {
     candidates: top3,
     primary: top3[0] || null,
-    satisfaction: satisfaction
+    satisfaction: satisfaction,
+    relaxed: relaxed,
+    needRpm: Math.round(needRpm * 10) / 10
   };
 }
 
@@ -2306,7 +2247,7 @@ function renderRobotSolution(solution) {
   if (satisfactionStats) {
     satisfactionHtml = '<div class="satisfaction-stats"><strong>满足状态：</strong>';
     Object.entries(satisfactionStats).forEach(([status, count]) => {
-      const cls = status === '精确满足' ? 'status-exact' : status === '满足' ? 'status-ok' : status === '满足但明显过配' ? 'status-over' : 'status-unknown';
+      const cls = status === '精确满足' ? 'status-exact' : status === '满足' ? 'status-ok' : status === '满足但明显过配' ? 'status-over' : status === '扭矩不足' ? 'status-bad' : status === '转速不足' ? 'status-bad' : status === '无满足型号' ? 'status-bad' : 'status-unknown';
       satisfactionHtml += `<span class="satisfaction-tag ${cls}">${status}: ${count}个</span>`;
     });
     satisfactionHtml += '</div>';
@@ -2394,7 +2335,7 @@ function renderRobotSolution(solution) {
       }).join('');
       
       const primary = joint.primary;
-      const satisfactionCls = joint.satisfaction === '精确满足' ? 'status-exact' : joint.satisfaction === '满足' ? 'status-ok' : joint.satisfaction === '满足但明显过配' ? 'status-over' : 'status-unknown';
+      const satisfactionCls = joint.satisfaction === '精确满足' ? 'status-exact' : joint.satisfaction === '满足' ? 'status-ok' : joint.satisfaction === '满足但明显过配' ? 'status-over' : 'status-bad';
       
       html += `
         <tr>

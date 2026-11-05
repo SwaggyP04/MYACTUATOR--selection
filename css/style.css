@@ -1215,3 +1215,10 @@ tr:hover { background: rgba(33,150,243,0.05); }
 .env-finding-warn .env-finding-title { color: #d29922; }
 .env-finding-ok { border-left-color: #3fb950; background: rgba(63, 185, 80, .06); }
 .env-finding-ok .env-finding-title { color: #3fb950; }
+
+/* 扭矩不足 / 转速不足 / 无满足型号 */
+.status-bad {
+  background: rgba(248, 81, 73, .14);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, .4);
+}
