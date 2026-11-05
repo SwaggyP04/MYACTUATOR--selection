@@ -7,244 +7,7 @@
 <link rel="apple-touch-icon" href="images/favicon.png">
   <title>脉塔电机客户选型APP</title>
   <link rel="stylesheet" href="css/style.css">
-  <style>
-    /* 3D装配可视化模态框 */
-    .assembly-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      z-index: 10000;
-      background: #0a0d12;
-    }
-    .assembly-modal.active { display: flex; }
-    .assembly-close {
-      position: absolute;
-      top: 16px; right: 16px;
-      z-index: 100;
-      width: 40px; height: 40px;
-      border-radius: 10px;
-      background: rgba(17,21,28,0.9);
-      border: 1px solid #222a38;
-      color: #e2e8f0;
-      font-size: 20px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      backdrop-filter: blur(10px);
-      transition: all 0.2s;
-    }
-    .assembly-close:hover { color: #ef4444; border-color: #ef4444; }
-    .assembly-container {
-      display: flex;
-      width: 100%; height: 100%;
-      background: #0a0d12;
-      position: relative;
-    }
-    .assembly-param-panel {
-      width: 340px; flex-shrink: 0;
-      background: #11151c;
-      border-right: 1px solid #222a38;
-      display: flex; flex-direction: column;
-      overflow: hidden; z-index: 10;
-    }
-    .assembly-panel-header {
-      padding: 20px 24px 16px;
-      border-bottom: 1px solid #222a38;
-      background: linear-gradient(180deg, #161b24 0%, #11151c 100%);
-    }
-    .assembly-panel-title {
-      font-size: 16px; font-weight: 700; color: #e2e8f0;
-      display: flex; align-items: center; gap: 10px;
-    }
-    .assembly-panel-title::before {
-      content: ''; width: 3px; height: 16px;
-      background: #3b82f6; border-radius: 2px;
-    }
-    .assembly-panel-subtitle {
-      font-size: 12px; color: #64748b; margin-top: 6px; margin-left: 13px;
-    }
-    .assembly-progress-bar {
-      height: 4px; background: #222a38; border-radius: 2px;
-      margin: 14px 0 8px 13px; overflow: hidden;
-    }
-    .assembly-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #10b981);
-      border-radius: 2px;
-      transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
-    }
-    .assembly-progress-text {
-      font-size: 11px; color: #64748b; margin-left: 13px; font-family: monospace;
-    }
-    .assembly-axis-list {
-      flex: 1; overflow-y: auto; padding: 12px 16px;
-      display: flex; flex-direction: column; gap: 10px;
-    }
-    .assembly-axis-list::-webkit-scrollbar { width: 6px; }
-    .assembly-axis-list::-webkit-scrollbar-thumb { background: #222a38; border-radius: 3px; }
-    .assembly-axis-card {
-      background: #161b24; border: 1px solid #222a38;
-      border-radius: 8px; padding: 14px 16px;
-      transition: all 0.3s ease; position: relative; overflow: hidden;
-    }
-    .assembly-axis-card::before {
-      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-      background: #2d3748; transition: background 0.3s ease;
-    }
-    .assembly-axis-card.assembled {
-      border-color: rgba(59,130,246,0.4);
-      background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, #161b24 60%);
-    }
-    .assembly-axis-card.assembled::before { background: #3b82f6; }
-    .assembly-axis-card.pending { opacity: 0.5; }
-    .assembly-axis-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
-    }
-    .assembly-axis-badge {
-      width: 26px; height: 26px; border-radius: 6px;
-      background: #222a38; display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 700; font-family: monospace; color: #64748b;
-      transition: all 0.3s ease;
-    }
-    .assembly-axis-card.assembled .assembly-axis-badge {
-      background: rgba(59,130,246,0.15); color: #3b82f6;
-    }
-    .assembly-axis-name { font-size: 13px; font-weight: 500; color: #94a3b8; }
-    .assembly-axis-card.assembled .assembly-axis-name { color: #e2e8f0; }
-    .assembly-axis-status {
-      font-size: 11px; padding: 2px 8px; border-radius: 4px;
-      font-family: monospace; background: #222a38; color: #64748b;
-    }
-    .assembly-axis-card.assembled .assembly-axis-status {
-      background: rgba(16,185,129,0.15); color: #10b981;
-    }
-    .assembly-axis-params {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
-    }
-    .assembly-param-item { display: flex; flex-direction: column; gap: 2px; }
-    .assembly-param-label { font-size: 10px; color: #64748b; }
-    .assembly-param-value {
-      font-size: 12px; font-weight: 500; color: #e2e8f0;
-      font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .assembly-param-value.placeholder { color: #64748b; font-style: italic; }
-    .assembly-summary {
-      border-top: 1px solid #222a38; padding: 16px 20px; background: #161b24;
-    }
-    .assembly-summary-title {
-      font-size: 12px; font-weight: 700; color: #94a3b8;
-      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
-    }
-    .assembly-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .assembly-summary-item {
-      background: #11151c; border: 1px solid #222a38; border-radius: 6px; padding: 10px 12px;
-    }
-    .assembly-summary-item-label { font-size: 10px; color: #64748b; margin-bottom: 4px; }
-    .assembly-summary-item-value {
-      font-size: 15px; font-weight: 700; color: #e2e8f0; font-family: monospace;
-    }
-    .assembly-summary-item-value.placeholder {
-      color: #64748b; font-size: 13px; font-weight: 400; font-style: italic;
-    }
-    .assembly-canvas-container {
-      flex: 1; position: relative; overflow: hidden;
-      background: radial-gradient(ellipse at center bottom, #141923 0%, #0a0d12 70%);
-    }
-    #assembly-canvas { width: 100%; height: 100%; display: block; }
-    #assembly-label-renderer {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-    }
-    .motor-label {
-      background: rgba(17,21,28,0.92); border: 1px solid rgba(59,130,246,0.5);
-      border-radius: 6px; padding: 8px 12px; min-width: 160px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 20px rgba(59,130,246,0.15);
-      backdrop-filter: blur(8px); position: relative;
-      transform: translate(-50%, -100%); margin-top: -8px;
-      animation: labelPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    @keyframes labelPop {
-      0% { opacity: 0; transform: translate(-50%, -80%) scale(0.8); }
-      100% { opacity: 1; transform: translate(-50%, -100%) scale(1); }
-    }
-    .motor-label::after {
-      content: ''; position: absolute; bottom: -6px; left: 50%;
-      transform: translateX(-50%) rotate(45deg); width: 10px; height: 10px;
-      background: rgba(17,21,28,0.92);
-      border-right: 1px solid rgba(59,130,246,0.5);
-      border-bottom: 1px solid rgba(59,130,246,0.5);
-    }
-    .motor-label-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 6px; padding-bottom: 6px;
-      border-bottom: 1px solid rgba(59,130,246,0.3);
-    }
-    .motor-label-axis {
-      font-size: 11px; font-weight: 700; color: #3b82f6; font-family: monospace;
-    }
-    .motor-label-model { font-size: 11px; color: #e2e8f0; font-weight: 500; }
-    .motor-label-params { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
-    .motor-label-param { display: flex; flex-direction: column; gap: 1px; }
-    .motor-label-param .lbl { font-size: 9px; color: #64748b; }
-    .motor-label-param .val { font-size: 10px; color: #94a3b8; font-family: monospace; }
-    .assembly-control-bar {
-      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 12px; z-index: 5;
-      background: rgba(17,21,28,0.85); border: 1px solid #222a38;
-      border-radius: 12px; padding: 10px 14px; backdrop-filter: blur(12px);
-    }
-    .assembly-ctrl-btn {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border-radius: 8px;
-      background: #161b24; border: 1px solid #2d3748;
-      color: #e2e8f0; font-size: 13px; font-weight: 500;
-      cursor: pointer; transition: all 0.2s ease; font-family: inherit;
-    }
-    .assembly-ctrl-btn:hover { background: #222a38; border-color: #3b82f6; color: #3b82f6; }
-    .assembly-ctrl-btn.primary {
-      background: #3b82f6; border-color: #3b82f6; color: white;
-    }
-    .assembly-ctrl-btn.primary:hover {
-      background: #2563eb; border-color: #2563eb; color: white;
-      box-shadow: 0 4px 16px rgba(59,130,246,0.4);
-    }
-    .assembly-status-indicator {
-      position: absolute; top: 20px; right: 70px;
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(17,21,28,0.85); border: 1px solid #222a38;
-      border-radius: 8px; padding: 8px 14px; backdrop-filter: blur(12px); z-index: 5;
-    }
-    .assembly-status-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #64748b;
-      transition: all 0.3s ease;
-    }
-    .assembly-status-dot.assembling {
-      background: #f59e0b; box-shadow: 0 0 10px #f59e0b;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    .assembly-status-dot.running {
-      background: #10b981; box-shadow: 0 0 10px #10b981;
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .assembly-status-text { font-size: 12px; color: #94a3b8; font-weight: 500; }
-    .assembly-axis-indicator {
-      position: absolute; top: 20px; left: 20px;
-      display: flex; gap: 6px;
-      background: rgba(17,21,28,0.85); border: 1px solid #222a38;
-      border-radius: 8px; padding: 8px 12px; backdrop-filter: blur(12px); z-index: 5;
-    }
-    .assembly-axis-dot {
-      width: 10px; height: 10px; border-radius: 50%; background: #2d3748;
-      transition: all 0.3s ease;
-    }
-    .assembly-axis-dot.active { background: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
-    .assembly-axis-dot.done { background: #10b981; }
-    .assembly-canvas-title {
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 5; text-align: center; pointer-events: none;
-    }
-    .assembly-canvas-title h1 { font-size: 15px; font-weight: 600; color: #e2e8f0; letter-spacing: 1px; }
-    .assembly-canvas-title p { font-size: 11px; color: #64748b; margin-top: 3px; font-family: monospace; }
-  </style>
+  
 </head>
 <body>
 
@@ -363,7 +126,6 @@
     </div>
     <div id="manual-result"></div>
   </div>
-
 
   <!-- ===== Sizing 选型计算 ===== -->
   <div class="panel" id="panel-sizing">
@@ -661,7 +423,6 @@
     
     <div id="solution-result" style="margin-top:20px;"></div>
   </div>
-
 
   <!-- ===== Build-a-Bot 拼装机器人 ===== -->
   <div class="panel" id="panel-build">
@@ -1299,7 +1060,6 @@ function renderLibrary() {
 renderLibrary();
 document.querySelectorAll('#lib-types input').forEach(cb => cb.addEventListener('change', renderLibrary));
 
-
 /* ═══════════ 支持中心 ═══════════ */
 /* ═══════════════════════════════════════════════════════════════
    支持中心 —— 故障码 / 排障向导 / 参数说明 / 教程
@@ -1612,8 +1372,6 @@ document.addEventListener('click', function (e) {
     }, 40);
   }
 });
-
-
 
 /* ═══════════ 工况校核 ═══════════ */
 /* ═══════════════════════════════════════════════════════════════
@@ -2139,8 +1897,6 @@ function exportEnvelopeExcel() {
   XLSX.writeFile(wb, '工况校核_' + safeName + '_' + ds + '.xlsx');
 }
 
-
-
 /* ═══════════ 占空比校核 ═══════════ */
 /* ═══════════════════════════════════════════════════════════════
    占空比校核（Duty-cycle RMS）
@@ -2377,8 +2133,6 @@ function exportDutyExcel() {
   XLSX.writeFile(wb, '占空比校核_' + (p.short || 'motor') + '_' + ds + '.xlsx');
 }
 
-
-
 /* ═══════════ 关节选型 ═══════════ */
 /* ═══════════════════════════════════════════════════════════════
    关节选型（Joint Sizing）—— 单个关节的扭矩/转速校核
@@ -2546,24 +2300,6 @@ function initJointSizing() {
 }
 
 </script>
-
-<!-- 3D 智能装配演示模态框（iframe 加载单文件装配页 assembly-view.html，离线可用） -->
-<style>
-  .assembly-iframe-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; background: #e9edf2; flex-direction: column; }
-  .assembly-iframe-modal.active { display: flex; }
-  .aifm-head { height: 46px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: #f6f8fb; border-bottom: 1px solid #dde3eb; }
-  .aifm-head span { font-size: 13px; font-weight: 600; color: #3d4659; }
-  .aifm-close { padding: 6px 14px; font-size: 12.5px; color: #3d4659; background: #ffffff; border: 1px solid #c9d1dc; border-radius: 7px; cursor: pointer; transition: all 0.2s; }
-  .aifm-close:hover { color: #d24c4c; border-color: #d24c4c; }
-  .assembly-iframe-modal iframe { flex: 1; width: 100%; border: 0; background: #e9edf2; }
-</style>
-<div class="assembly-iframe-modal" id="assemblyIframeModal">
-  <div class="aifm-head">
-    <span>🎬 脉塔智能 · 3D 智能装配演示（逐步组装 · 参数跟随电机 · 右侧动作演示）</span>
-    <button class="aifm-close" onclick="closeAssemblyModal()">✕ 关闭</button>
-  </div>
-  <iframe id="aifmFrame" src="assembly-view.html" allow="autoplay" title="3D装配演示"></iframe>
-</div>
 
 </body>
 </html>

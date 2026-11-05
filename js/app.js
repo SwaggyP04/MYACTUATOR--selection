@@ -2492,7 +2492,6 @@ function renderRobotSolution(solution) {
         </div>
         <div style="flex:1;min-width:300px;">
           <h3 style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;">${template.icon} ${template.name}系统方案
-            <button onclick="openAssemblyView()" style="padding:6px 14px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;box-shadow:0 2px 8px rgba(59,130,246,0.3);">🎬 查看3D装配动画</button>
           </h3>
           <p style="color:#889;font-size:13px;margin:5px 0 15px 0;">${template.description}</p>
           <div class="solution-stats">
@@ -2657,79 +2656,7 @@ function renderRobotSolution(solution) {
   return html;
 }
 
-// 打开3D装配可视化（iframe 模态框，加载单文件装配页 assembly-view.html）
-function openAssemblyView(autoStart) {
-  const solution = window.currentSolution;
-  if (!solution) {
-    alert('请先生成方案');
-    return;
-  }
-  const { joints, robotType, params, template } = solution;
-  if (!joints || joints.length === 0) {
-    alert('方案中没有关节数据');
-    return;
-  }
 
-  // 组装传给装配页的数据（装配页按型号从产品库 JSON 归一化完整参数）
-  const payload = {
-    robotType: robotType || 'arm',
-    robotName: (template && template.name) ? template.name : '机器人系统方案',
-    params: params || {},
-    joints: joints.map((joint, idx) => ({
-      id: joint.id,
-      key: joint.key || ('J' + (idx + 1)),
-      name: joint.name || ('J' + (idx + 1)) + '轴',
-      part: joint.part || '',
-      dof: joint.dof,
-      load: joint.load,
-      rated: joint.rated,
-      peak: joint.peak,
-      primary: joint.primary ? {
-        short: joint.primary.short, full: joint.primary.full, type: joint.primary.type,
-        rated: joint.primary.rated, peak: joint.primary.peak, power: joint.primary.power,
-        speed: joint.primary.speed, voltage: joint.primary.voltage,
-        od: joint.primary.od, length: joint.primary.length, weight: joint.primary.weight,
-        ratio: joint.primary.ratio, comm: joint.primary.comm, encoder: joint.primary.encoder,
-        backlash: joint.primary.backlash, repeatability: joint.primary.repeatability,
-        inertia: joint.primary.inertia
-      } : null
-    })),
-    totalDof: solution.totalDof,
-    totalMotors: solution.totalMotors,
-    totalPower: solution.totalPower,
-    satisfactionStats: solution.satisfactionStats,
-    generatedAt: solution.generatedAt || new Date().toLocaleString('zh-CN')
-  };
-
-  // 双通道传递：localStorage（备用）+ URL hash（file:// 下最可靠）
-  try { localStorage.setItem('mds_assembly_solution', JSON.stringify(payload)); } catch (e) { /* ignore */ }
-  showAssemblyModal(payload);
-}
-
-// 显示装配模态框（iframe 每次重新加载，自动开始装配动画）
-function showAssemblyModal(payload) {
-  const modal = document.getElementById('assemblyIframeModal');
-  const frame = document.getElementById('aifmFrame');
-  if (!modal || !frame) {
-    alert('装配组件未找到，请确认 assembly-view.html 与 index.html 位于同一目录');
-    return;
-  }
-  frame.src = 'assembly-view.html#data=' + encodeURIComponent(JSON.stringify(payload));
-  modal.classList.add('active');
-}
-
-function closeAssemblyModal() {
-  const modal = document.getElementById('assemblyIframeModal');
-  if (modal) modal.classList.remove('active');
-}
-
-// ESC 关闭装配模态框
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') {
-    const m = document.getElementById('assemblyIframeModal');
-    if (m && m.classList.contains('active')) m.classList.remove('active');
-  }
-});
 function updateSolutionParams() {
   const type = document.getElementById('solution-type').value;
   const template = ROBOT_TEMPLATES[type];
@@ -2834,11 +2761,7 @@ function generateSolution() {
     if (solution) {
       window.currentSolution = solution;
       resultDiv.innerHTML = '<div class="card">' + renderRobotSolution(solution) + '</div>';
-      // ★ 2026-11 已按要求取消「自动弹出 3D 装配演示」
-      //   如需查看，请点结果卡片里的「3D装配演示」按钮（openAssemblyView）
-      // setTimeout(() => {
-      //   openAssemblyView(true);
-      // }, 800);
+      // 3D 装配演示已下线
     } else {
       resultDiv.innerHTML = '<p style="color:#f66;">方案生成失败，请检查参数</p>';
     }
