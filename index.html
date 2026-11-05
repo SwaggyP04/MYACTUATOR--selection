@@ -2483,10 +2483,11 @@ function renderConst() {
   html += '<div class="mc-kv mc-kv-main"><span>当前采用</span><b>' +
           (kt.value != null ? r3(kt.value) + ' N·m/A' : '— 无可用数据') + '</b></div>';
 
+  // 只列计算得到的值；手册值仅在它是唯一可用来源时才出现
   const rows = [];
   if (kt.vendor != null) rows.push(['厂家实测 KTout', kt.vendor]);
   if (kt.rated != null) rows.push(['额定点反算', kt.rated]);
-  if (kt.manual != null) rows.push(['手册标称', kt.manual]);
+  if (rows.length === 0 && kt.manual != null) rows.push(['手册标称', kt.manual]);
 
   rows.forEach(([name, val]) => {
     const isUsed = Math.abs(val - kt.value) < 1e-9 && kt.source !== '手动输入' &&
