@@ -2090,29 +2090,32 @@ function recommendMotorForJoint(joint, requirements = {}) {
   }
 
   candidates = candidates.slice().sort((a, b) => {
-    // 1) 偏好类型
+    // 1) 偏好类型（混动配置：上半身行星 / 下半身谐波）
     const ai = preferredTypes.indexOf(a.type);
     const bi = preferredTypes.indexOf(b.type);
     const aT = ai === -1 ? 99 : ai;
     const bT = bi === -1 ? 99 : bi;
     if (aT !== bT) return aT - bT;
 
-    // 2) 计分（越小越好）
+    // 2) 重量最轻 —— 机器人上每个关节的重量都会压给上一级关节，
+    //    这与官方 WorkBench「Picks the lightest actuator」的目标一致
+    const aW = a.weight == null ? 999 : a.weight;
+    const bW = b.weight == null ? 999 : b.weight;
+    if (Math.abs(aW - bW) > 0.02) return aW - bW;
+
+    // 3) 无抱闸优先（抱闸更重更贵，除非确实需要断电保持位置）
+    const aB = a.brake === '有' ? 1 : 0;
+    const bB = b.brake === '有' ? 1 : 0;
+    if (aB !== bB) return aB - bB;
+
+    // 4) 同重量时取更接近需求的
     const sa = score(a), sb = score(b);
     if (Math.abs(sa - sb) > 0.8) return sa - sb;
 
-    // 3) 分数接近 → 稳定 tie-break
-    const aB = a.brake === '有' ? 1 : 0;
-    const bB = b.brake === '有' ? 1 : 0;
-    if (aB !== bB) return aB - bB;                     // 无抱闸优先
-
-    const aW = a.weight == null ? 999 : a.weight;
-    const bW = b.weight == null ? 999 : b.weight;
-    if (Math.abs(aW - bW) > 0.02) return aW - bW;      // 更轻优先
-
+    // 5) 更小外径
     const aO = a.od == null ? 999 : a.od;
     const bO = b.od == null ? 999 : b.od;
-    if (aO !== bO) return aO - bO;                     // 更小优先
+    if (aO !== bO) return aO - bO;
 
     return String(a.full).localeCompare(String(b.full));  // 最终稳定
   });

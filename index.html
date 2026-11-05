@@ -679,7 +679,8 @@
   <div class="panel" id="panel-support">
       <!-- 子标签 -->
       <div class="sup-tabs">
-        <button class="sup-tab active" data-sub="envelope">🌡 工况校核</button>
+        <button class="sup-tab active" data-sub="joint">🎯 关节选型</button>
+        <button class="sup-tab" data-sub="envelope">🌡 工况校核</button>
         <button class="sup-tab" data-sub="duty">📊 占空比</button>
         <button class="sup-tab" data-sub="faults">🔴 故障码</button>
         <button class="sup-tab" data-sub="tshoot">🧭 排障向导</button>
@@ -687,8 +688,72 @@
         <button class="sup-tab" data-sub="guides">🎬 教程</button>
       </div>
 
+      <!-- 关节选型 -->
+      <div class="sup-panel active" id="sup-joint">
+        <div class="env-wrap">
+          <div class="card">
+            <div class="card-title">单个关节参数</div>
+            <p class="env-desc">
+              按最不利姿态（力臂水平伸出）计算保持扭矩，乘以安全系数得到所需额定扭矩；
+              勾选加速后再加上惯量扭矩作为峰值需求。
+            </p>
+
+            <div class="env-field">
+              <label>负载质量</label>
+              <input type="number" id="js-payload" value="1" step="0.1" min="0" oninput="renderJointSizing()">
+              <span class="env-unit">kg</span>
+            </div>
+            <div class="env-field">
+              <label>力臂</label>
+              <input type="number" id="js-lever" value="300" step="10" min="0" oninput="renderJointSizing()">
+              <span class="env-unit">mm</span>
+            </div>
+            <div class="env-field">
+              <label>连杆质量</label>
+              <input type="number" id="js-link" value="0" step="0.1" min="0" oninput="renderJointSizing()">
+              <span class="env-unit">kg</span>
+            </div>
+            <div class="env-field">
+              <label>所需转速</label>
+              <input type="number" id="js-speed" value="30" step="1" min="0" oninput="renderJointSizing()">
+              <span class="env-unit">RPM</span>
+            </div>
+            <div class="env-field">
+              <label>安全系数</label>
+              <input type="number" id="js-sf" value="2" step="0.1" min="1" oninput="renderJointSizing()">
+              <span class="env-unit">×</span>
+            </div>
+
+            <label class="js-accel-row">
+              <input type="checkbox" id="js-accel" onchange="renderJointSizing()">
+              <span>计入加速扭矩（动态工况）</span>
+            </label>
+
+            <div class="js-accel-time">
+              <label style="font-size:13px;color:#aabbcc;">加速时间</label>
+              <input type="number" id="js-accelt" value="0.3" step="0.05" min="0.01"
+                     oninput="renderJointSizing()"
+                     style="width:100%;padding:8px 10px;background:#0d1117;border:1px solid #2a3a4a;border-radius:6px;color:#e6edf3;font-size:13px;font-family:inherit;box-sizing:border-box;">
+              <span class="env-unit">s</span>
+            </div>
+
+            <div class="env-help">
+              τ = g·(m·L + m_link·L/2)<br>
+              勾选加速：J = m·L² + m_link·L²/3，α = ω/t<br>
+              Peak = (τ + J·α) × SF
+            </div>
+          </div>
+
+          <div class="env-result">
+            <div class="card">
+              <div id="js-result"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 工况校核 -->
-      <div class="sup-panel active" id="sup-envelope">
+      <div class="sup-panel" id="sup-envelope">
         <div class="env-wrap">
           <!-- 左：输入 -->
           <div class="card">
@@ -1235,7 +1300,8 @@ function initSupportTabs() {
       const panel = document.getElementById('sup-' + sub);
       if (panel) panel.classList.add('active');
 
-      if (sub === 'envelope') renderEnvelopeCheck();
+      if (sub === 'joint') renderJointSizing();
+      else if (sub === 'envelope') renderEnvelopeCheck();
       else if (sub === 'duty') initDuty();
       else if (sub === 'faults') renderSupportFaults();
       else if (sub === 'tshoot') renderTshootHome();
@@ -1484,9 +1550,8 @@ function renderSupportGuides() {
       });
     }
 
-    // 默认子标签是「工况校核」
-    initEnvModelSelect();
-    renderEnvelopeCheck();
+    // 默认子标签是「关节选型」
+    renderJointSizing();
 
     console.log('[支持中心] 已初始化', {
       故障码: (window.SUPPORT_FAULTS || []).length,
@@ -1509,7 +1574,8 @@ document.addEventListener('click', function (e) {
     setTimeout(function () {
       var act = document.querySelector('.sup-tab.active');
       var sub = act ? act.getAttribute('data-sub') : 'envelope';
-      if (sub === 'envelope') { initEnvModelSelect(); renderEnvelopeCheck(); }
+      if (sub === 'joint') { renderJointSizing(); }
+      else if (sub === 'envelope') { initEnvModelSelect(); renderEnvelopeCheck(); }
       else if (sub === 'duty') { initDuty(); }
       else if (sub === 'faults') renderSupportFaults();
       else if (sub === 'tshoot') renderTshootHome();
@@ -2278,6 +2344,174 @@ function exportDutyExcel() {
   const now = new Date();
   const ds = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
   XLSX.writeFile(wb, '占空比校核_' + (p.short || 'motor') + '_' + ds + '.xlsx');
+}
+
+
+
+/* ═══════════ 关节选型 ═══════════ */
+/* ═══════════════════════════════════════════════════════════════
+   关节选型（Joint Sizing）—— 单个关节的扭矩/转速校核
+   ───────────────────────────────────────────────────────────────
+   与官方 WorkBench「Joint sizing」口径一致：
+
+     Holding torque τ = g·(m·L + m_link·L/2)          重力保持力矩
+     Required rated   = τ × SF
+     Required speed   ≥ 输入的 RPM
+
+     勾选加速时：
+       J = m·L² + m_link·L²/3                        （负载质点 + 连杆均质杆）
+       α = ω / t，ω = RPM × 2π/60
+       Peak = (τ + J·α) × SF
+
+     推荐规则：closest fit —— 满足 rated 与转速的候选中，
+               headroom = rated_actual / rated_required 最接近 1 的排前面
+   ═══════════════════════════════════════════════════════════════ */
+
+const JS_G = 9.81;
+
+function jointSizingCalc() {
+  const m = parseFloat(document.getElementById('js-payload').value) || 0;
+  const L = (parseFloat(document.getElementById('js-lever').value) || 0) / 1000;
+  const mL = parseFloat(document.getElementById('js-link').value) || 0;
+  const rpm = parseFloat(document.getElementById('js-speed').value) || 0;
+  const sf = parseFloat(document.getElementById('js-sf').value) || 1;
+  const accelOn = document.getElementById('js-accel').checked;
+  const accelT = parseFloat(document.getElementById('js-accelt').value) || 0.3;
+
+  const hold = JS_G * (m * L + mL * L / 2);
+  const ratedNeed = hold * sf;
+
+  const omega = rpm * 2 * Math.PI / 60;
+  const alpha = accelT > 0 ? omega / accelT : 0;
+  const J = m * L * L + mL * L * L / 3;
+  const accelTq = J * alpha;
+  const peakNeed = accelOn ? (hold + accelTq) * sf : 0;
+
+  const r2 = v => Math.round(v * 100) / 100;
+  return {
+    hold: r2(hold), ratedNeed: r2(ratedNeed),
+    J: Math.round(J * 10000) / 10000, alpha: r2(alpha),
+    accelTq: r2(accelTq), peakNeed: r2(peakNeed),
+    speedNeed: rpm, accelOn: accelOn, sf: sf
+  };
+}
+
+function renderJointSizing() {
+  const box = document.getElementById('js-result');
+  if (!box) return;
+
+  const c = jointSizingCalc();
+  const r2 = v => Math.round(v * 100) / 100;
+
+  if (c.ratedNeed <= 0 || c.speedNeed <= 0) {
+    box.innerHTML = '<div class="env-finding env-finding-warn">' +
+      '<div class="env-finding-title">▲ 参数不完整</div>' +
+      '<div class="env-finding-text">请填写负载质量、力臂长度与所需转速。</div></div>';
+    return;
+  }
+
+  // 候选：额定够 + 转速够（勾选加速时还要峰值够）
+  const TYPES = ['行星模组', '谐波模组', '轻量谐波', '摆线模组', '中空直驱'];
+  const list = PRODUCTS.filter(p => {
+    if (TYPES.indexOf(p.type) < 0) return false;
+    if ((Number(p.rated) || 0) < c.ratedNeed) return false;
+    if ((Number(p.speed) || 0) < c.speedNeed) return false;
+    if (c.accelOn && (Number(p.peak) || 0) < c.peakNeed) return false;
+    return true;
+  }).map(p => {
+    const headroom = c.ratedNeed > 0 ? (Number(p.rated) || 0) / c.ratedNeed : 0;
+    return { p: p, headroom: headroom };
+  }).sort((a, b) => {
+    // closest fit：headroom 最接近 1 的优先
+    const da = Math.abs(a.headroom - 1), db = Math.abs(b.headroom - 1);
+    if (Math.abs(da - db) > 0.02) return da - db;
+    // headroom 相同 → 更轻
+    const wa = a.p.weight == null ? 999 : a.p.weight;
+    const wb = b.p.weight == null ? 999 : b.p.weight;
+    return wa - wb;
+  });
+
+  let html = '';
+
+  // 上方三个数字
+  html += '<div class="js-kv-list">';
+  html += '<div class="js-kv"><span>保持扭矩（最不利姿态）</span><b>' + c.hold + ' N·m</b></div>';
+  html += '<div class="js-kv"><span>所需额定扭矩（保持 × SF ' + c.sf + '）</span><b class="js-strong">' + c.ratedNeed + ' N·m</b></div>';
+  html += '<div class="js-kv"><span>所需转速</span><b class="js-strong">≥ ' + c.speedNeed + ' RPM</b></div>';
+  if (c.accelOn) {
+    html += '<div class="js-kv"><span>惯量 J / 角加速度 α</span><b>' + c.J + ' kg·m² / ' + c.alpha + ' rad/s²</b></div>';
+    html += '<div class="js-kv"><span>所需峰值扭矩（(保持+J·α) × SF）</span><b class="js-strong">' + c.peakNeed + ' N·m</b></div>';
+  }
+  html += '</div>';
+
+  // 推荐列表头
+  const cond = 'rated τ ≥ ' + c.ratedNeed + ' N·m & ≥ ' + c.speedNeed + ' RPM' +
+               (c.accelOn ? ' & peak ≥ ' + c.peakNeed + ' N·m' : '');
+  html += '<div class="js-list-title">推荐 · 最接近匹配（' + list.length + ' 个型号满足 ' + cond + '）</div>';
+
+  if (!list.length) {
+    html += '<div class="env-finding env-finding-danger">' +
+      '<div class="env-finding-title">● 没有型号满足</div>' +
+      '<div class="env-finding-text">需要降低负载/力臂，或放宽转速要求。</div></div>';
+    box.innerHTML = html;
+    return;
+  }
+
+  const show = list.slice(0, 6);
+  html += '<div class="js-list">';
+  show.forEach(it => {
+    const p = it.p;
+    const hr = it.headroom.toFixed(1);
+    html += '<div class="js-item">' +
+      '<div class="js-item-main">' +
+        '<div class="js-item-name">' + (p.full || p.short) + '</div>' +
+        '<div class="js-item-spec">额定 ' + p.rated + ' · 峰值 ' + p.peak + ' N·m · ' +
+          (p.speed != null ? p.speed + ' RPM' : '—') + ' · ' +
+          (p.weight != null ? p.weight + ' kg' : '—') + ' · ' +
+          (p.voltage != null ? p.voltage + ' V' : '—') +
+          (p.backlash != null ? ' · 背隙 ' + p.backlash : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="js-item-headroom">→' + hr + ' headroom</div>' +
+    '</div>';
+  });
+  if (list.length > show.length) {
+    html += '<div class="js-more" onclick="jsShowAll()">显示其余 ' + (list.length - show.length) + ' 个选项 ▾</div>';
+  }
+  html += '</div>';
+
+  box.innerHTML = html;
+  box._jsAll = list;
+}
+
+function jsShowAll() {
+  const box = document.getElementById('js-result');
+  if (!box || !box._jsAll) return;
+  const list = box._jsAll;
+  let html = '';
+  html += '<div class="js-list-title">全部 ' + list.length + ' 个满足条件的型号</div>';
+  html += '<div class="js-list">';
+  list.forEach(it => {
+    const p = it.p;
+    html += '<div class="js-item">' +
+      '<div class="js-item-main">' +
+        '<div class="js-item-name">' + (p.full || p.short) + '</div>' +
+        '<div class="js-item-spec">额定 ' + p.rated + ' · 峰值 ' + p.peak + ' N·m · ' +
+          (p.speed != null ? p.speed + ' RPM' : '—') + ' · ' +
+          (p.weight != null ? p.weight + ' kg' : '—') + ' · ' +
+          (p.voltage != null ? p.voltage + ' V' : '—') +
+        '</div>' +
+      '</div>' +
+      '<div class="js-item-headroom">→' + it.headroom.toFixed(1) + ' headroom</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  html += '<div style="margin-top:12px;"><button class="btn btn-secondary" onclick="renderJointSizing()">← 收起</button></div>';
+  box.innerHTML = html;
+}
+
+function initJointSizing() {
+  renderJointSizing();
 }
 
 </script>
