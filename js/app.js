@@ -1121,7 +1121,7 @@ function faqMarkdown(text) {
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, '');
     if (!line.trim()) {
-      if (listType) { out.push('</' + listType + '>'); listType = null; }
+      // 空行不关闭列表：列表项之间留空行时，序号继续递增而不是从 1 重来
       continue;
     }
     const ol = line.match(/^\s*(\d+)\.\s+(.*)$/);
