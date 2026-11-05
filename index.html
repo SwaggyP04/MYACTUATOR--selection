@@ -679,14 +679,77 @@
   <div class="panel" id="panel-support">
       <!-- 子标签 -->
       <div class="sup-tabs">
-        <button class="sup-tab active" data-sub="faults">🔴 故障码</button>
+        <button class="sup-tab active" data-sub="envelope">🌡 工况校核</button>
+        <button class="sup-tab" data-sub="faults">🔴 故障码</button>
         <button class="sup-tab" data-sub="tshoot">🧭 排障向导</button>
         <button class="sup-tab" data-sub="fields">📖 参数说明</button>
         <button class="sup-tab" data-sub="guides">🎬 教程</button>
       </div>
 
+      <!-- 工况校核 -->
+      <div class="sup-panel active" id="sup-envelope">
+        <div class="env-wrap">
+          <!-- 左：输入 -->
+          <div class="card">
+            <div class="card-title">实际工况</div>
+            <p class="env-desc">
+              输入客户实际运行的扭矩与转速，系统会把它画到该型号的扭矩-转速包络上，
+              判断是否超出峰值包络或连续工作区。
+            </p>
+
+            <div class="env-field">
+              <label>执行器型号</label>
+              <select id="env-model" onchange="renderEnvelopeCheck()"></select>
+            </div>
+            <div class="env-field">
+              <label>实际扭矩</label>
+              <input type="number" id="env-torque" value="10" step="0.1" min="0" oninput="renderEnvelopeCheck()">
+              <span class="env-unit">N·m</span>
+            </div>
+            <div class="env-field">
+              <label>实际转速</label>
+              <input type="number" id="env-speed" value="40" step="1" min="0" oninput="renderEnvelopeCheck()">
+              <span class="env-unit">RPM</span>
+            </div>
+            <div class="env-field">
+              <label>供电电压</label>
+              <input type="number" id="env-voltage" placeholder="可选" step="0.1" min="0" oninput="renderEnvelopeCheck()">
+              <span class="env-unit">V</span>
+            </div>
+            <div class="env-field">
+              <label>实测电流</label>
+              <input type="number" id="env-current" placeholder="可选" step="0.1" min="0" oninput="renderEnvelopeCheck()">
+              <span class="env-unit">A</span>
+            </div>
+
+            <label class="env-check">
+              <input type="checkbox" id="env-continuous" checked onchange="renderEnvelopeCheck()">
+              <span>连续运行（不只是短时突发）</span>
+            </label>
+
+            <div class="env-actions">
+              <button class="btn btn-secondary" onclick="exportEnvelopeExcel()">⬇ 导出 Excel 报告</button>
+            </div>
+          </div>
+
+          <!-- 右：图表 + 结论 -->
+          <div class="env-result">
+            <div class="card">
+              <div class="env-verdict" id="env-verdict"></div>
+              <canvas id="env-chart" width="760" height="380"></canvas>
+              <div class="env-legend">
+                <span><i class="lg-peak"></i>峰值包络</span>
+                <span><i class="lg-cont"></i>连续工作区</span>
+                <span><i class="lg-region"></i>连续区范围</span>
+              </div>
+            </div>
+            <div id="env-findings"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- 故障码 -->
-      <div class="sup-panel active" id="sup-faults">
+      <div class="sup-panel" id="sup-faults">
         <div class="card">
           <div class="card-title">
             <span>故障码速查</span>
@@ -1131,7 +1194,8 @@ function initSupportTabs() {
       const panel = document.getElementById('sup-' + sub);
       if (panel) panel.classList.add('active');
 
-      if (sub === 'faults') renderSupportFaults();
+      if (sub === 'envelope') renderEnvelopeCheck();
+      else if (sub === 'faults') renderSupportFaults();
       else if (sub === 'tshoot') renderTshootHome();
       else if (sub === 'fields') renderSupportFields();
       else if (sub === 'guides') renderSupportGuides();
@@ -1378,8 +1442,9 @@ function renderSupportGuides() {
       });
     }
 
-    // 首次进入时先渲染故障码（支持中心默认子标签）
-    renderSupportFaults();
+    // 默认子标签是「工况校核」
+    initEnvModelSelect();
+    renderEnvelopeCheck();
 
     console.log('[支持中心] 已初始化', {
       故障码: (window.SUPPORT_FAULTS || []).length,
@@ -1399,9 +1464,540 @@ function renderSupportGuides() {
 document.addEventListener('click', function (e) {
   const t = e.target.closest && e.target.closest('.tab');
   if (t && t.dataset && t.dataset.tab === 'support') {
-    setTimeout(() => renderSupportFaults(), 30);
+    setTimeout(function () {
+      var act = document.querySelector('.sup-tab.active');
+      var sub = act ? act.getAttribute('data-sub') : 'envelope';
+      if (sub === 'envelope') { initEnvModelSelect(); renderEnvelopeCheck(); }
+      else if (sub === 'faults') renderSupportFaults();
+      else if (sub === 'tshoot') renderTshootHome();
+      else if (sub === 'fields') renderSupportFields();
+      else if (sub === 'guides') renderSupportGuides();
+    }, 40);
   }
 });
+
+
+
+/* ═══════════ 工况校核 ═══════════ */
+/* ═══════════════════════════════════════════════════════════════
+   工况校核（Envelope check）
+   ───────────────────────────────────────────────────────────────
+   把客户实际运行的 扭矩 / 转速 画到电机的扭矩-转速包络上，
+   判断是否超出峰值包络或连续工作区。
+   支持导出 Excel（用已加载的 SheetJS / XLSX）。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 取当前选中产品 ── */
+function envCurrentProduct() {
+  const sel = document.getElementById('env-model');
+  if (!sel || !sel.value) return null;
+  const full = sel.value;
+  if (typeof PRODUCTS === 'undefined') return null;
+  return PRODUCTS.find(p => p.full === full) || null;
+}
+
+/* ── 包络模型 ──
+   恒扭矩段：0 ~ 额定转速，扭矩保持最大值
+   恒功率段：额定转速 ~ 空载转速，扭矩线性降到 0
+*/
+function envCurves(p) {
+  const ratedSpeed = Number(p.speed) || 0;
+  const noLoad = Number(p.noLoadSpeed) || (ratedSpeed > 0 ? ratedSpeed * 1.12 : 1);
+  const rated = Number(p.rated) || 0;
+  const peak = Number(p.peak) || 0;
+
+  function line(maxT, v) {
+    if (v <= 0) return maxT;
+    if (v >= noLoad) return 0;
+    if (noLoad <= ratedSpeed || v <= ratedSpeed) return maxT;
+    return maxT * (noLoad - v) / (noLoad - ratedSpeed);
+  }
+
+  return {
+    noLoad,
+    ratedSpeed,
+    rated,
+    peak,
+    peakAt: v => line(peak, v),
+    contAt: v => line(rated, v)
+  };
+}
+
+/* ── 填充型号下拉 ── */
+function initEnvModelSelect() {
+  const sel = document.getElementById('env-model');
+  if (!sel || sel.options.length > 0) return;
+  if (typeof PRODUCTS === 'undefined' || !PRODUCTS.length) {
+    sel.innerHTML = '<option value="">（产品库未加载）</option>';
+    return;
+  }
+  const groups = {};
+  PRODUCTS.forEach(p => {
+    const t = p.type || '其他';
+    (groups[t] = groups[t] || []).push(p);
+  });
+  let html = '';
+  Object.keys(groups).sort().forEach(t => {
+    html += '<optgroup label="' + t + '">';
+    groups[t].forEach(p => {
+      const label = p.short + '  ·  ' + (p.rated != null ? p.rated : '?') + '/' +
+                    (p.peak != null ? p.peak : '?') + ' N·m';
+      html += '<option value="' + p.full.replace(/"/g, '&quot;') + '">' + label + '</option>';
+    });
+    html += '</optgroup>';
+  });
+  sel.innerHTML = html;
+  // 默认选第一个
+  if (!sel.value && PRODUCTS[0]) sel.value = PRODUCTS[0].full;
+}
+
+/* ── 主计算 + 渲染 ── */
+function renderEnvelopeCheck() {
+  const p = envCurrentProduct();
+  const verdictEl = document.getElementById('env-verdict');
+  const findingsEl = document.getElementById('env-findings');
+  const canvas = document.getElementById('env-chart');
+  if (!verdictEl || !findingsEl || !canvas) return;
+
+  if (!p) {
+    verdictEl.innerHTML = '<span class="env-tag env-tag-muted">未选择型号</span>';
+    findingsEl.innerHTML = '';
+    return;
+  }
+
+  const env = envCurves(p);
+  const torque = parseFloat(document.getElementById('env-torque').value);
+  const speed = parseFloat(document.getElementById('env-speed').value);
+  const voltage = parseFloat(document.getElementById('env-voltage').value);
+  const current = parseFloat(document.getElementById('env-current').value);
+  const continuous = document.getElementById('env-continuous').checked;
+
+  const hasPoint = isFinite(torque) && isFinite(speed) && torque >= 0 && speed >= 0;
+  const tPeak = hasPoint ? env.peakAt(speed) : 0;
+  const tCont = hasPoint ? env.contAt(speed) : 0;
+
+  /* ── 判定 ── */
+  const findings = [];
+  let level = 'ok';   // ok | warn | danger
+
+  const push = (lv, title, text) => {
+    findings.push({ level: lv, title, text });
+    if (lv === 'danger') level = 'danger';
+    else if (lv === 'warn' && level === 'ok') level = 'warn';
+  };
+
+  if (!hasPoint) {
+    push('warn', '工况点未填写', '请填写实际扭矩与实际转速，才能判断是否在包络内。');
+  } else {
+    // 转速超限
+    if (speed > env.noLoad) {
+      push('danger', '转速超出空载转速',
+        '需求 ' + speed + ' RPM，该型号空载最高 ' + env.noLoad + ' RPM，无法达到。');
+    } else if (speed > env.ratedSpeed && env.ratedSpeed > 0) {
+      push('warn', '已进入恒功率区',
+        speed + ' RPM 高于额定转速 ' + env.ratedSpeed +
+        ' RPM，可用扭矩会随转速升高而下降。');
+    }
+
+    // 峰值包络
+    if (torque > env.peak) {
+      push('danger', '扭矩超过峰值扭矩',
+        '需求 ' + torque + ' N·m，该型号峰值扭矩只有 ' + env.peak + ' N·m。');
+    } else if (hasPoint && torque > tPeak) {
+      push('danger', '超出峰值包络',
+        '在 ' + speed + ' RPM 处峰值包络只剩 ' + tPeak.toFixed(2) +
+        ' N·m，' + torque + ' N·m 已超出，电机会堵转或失步。');
+    } else if (hasPoint && tPeak > 0 && torque > tPeak * 0.9) {
+      push('warn', '接近峰值边界',
+        '在 ' + speed + ' RPM 处峰值包络 ' + tPeak.toFixed(2) +
+        ' N·m，需求 ' + torque + ' N·m 已达 ' + (100 * torque / tPeak).toFixed(0) + '%。');
+    }
+
+    // 连续工作区
+    if (continuous && hasPoint) {
+      if (torque > tCont) {
+        push('danger', '超出连续工作区',
+          '在 ' + speed + ' RPM 处连续区只有 ' + tCont.toFixed(2) +
+          ' N·m，' + torque + ' N·m 连续运行会导致过温。');
+      } else if (tCont > 0 && torque > tCont * 0.85) {
+        push('warn', '接近连续区上限',
+          '连续区上限 ' + tCont.toFixed(2) + ' N·m，需求 ' + torque +
+          ' N·m 已达 ' + (100 * torque / tCont).toFixed(0) + '%，建议留余量。');
+      }
+    }
+
+    // 输出功率
+    if (hasPoint && torque > 0 && speed > 0) {
+      const pwr = torque * speed * 2 * Math.PI / 60;
+      if (p.power && pwr > p.power * 1.05) {
+        push('warn', '输出功率超出额定',
+          '工况点约 ' + pwr.toFixed(0) + ' W，额定功率 ' + p.power + ' W。');
+      }
+    }
+  }
+
+  // 电压检查
+  if (isFinite(voltage) && voltage > 0) {
+    const pv = Number(p.voltage) || 0;
+    if (pv > 0) {
+      const lo = Math.min(18, pv * 0.75);
+      const hi = Math.max(pv * 1.25, 48);
+      if (voltage < lo || voltage > hi) {
+        push('warn', '供电电压超出常用范围',
+          '实测 ' + voltage + ' V，该型号额定 ' + pv + ' V。');
+      }
+    }
+  }
+
+  // 电流反算扭矩
+  if (isFinite(current) && current > 0 && p.torqueConstant) {
+    const implied = current * Number(p.torqueConstant);
+    if (hasPoint && torque > 0) {
+      const dev = Math.abs(implied - torque) / torque;
+      if (dev > 0.3) {
+        push('warn', '电流与扭矩对不上',
+          '按扭矩常数 ' + p.torqueConstant + ' N·m/A 反算，实测 ' + current +
+          ' A 约对应 ' + implied.toFixed(1) + ' N·m，与填写的 ' + torque +
+          ' N·m 偏差 ' + (dev * 100).toFixed(0) + '%。检查是否卡滞或标定不准。');
+      }
+    }
+  }
+
+  /* ── 结论标签 ── */
+  const TAG = {
+    ok: ['env-tag-ok', 'Within envelope', '在包络内'],
+    warn: ['env-tag-warn', 'Marginal', '临界 · 需注意'],
+    danger: ['env-tag-bad', 'Out of envelope', '超出包络']
+  };
+  const tg = TAG[level];
+  verdictEl.innerHTML =
+    '<span class="env-tag ' + tg[0] + '">' + tg[1] + '</span>' +
+    '<span class="env-model-name">' + (p.full || '') + '</span>' +
+    (hasPoint ? '<span class="env-point-badge">' + torque + ' N·m @ ' + speed + ' RPM</span>' : '');
+
+  /* ── 明细 ── */
+  if (!findings.length) {
+    findingsEl.innerHTML =
+      '<div class="env-finding env-finding-ok">' +
+      '<div class="env-finding-title">✔ 工况点在能力范围内</div>' +
+      '<div class="env-finding-text">' +
+      '在 ' + speed + ' RPM 处：峰值包络 ' + tPeak.toFixed(2) + ' N·m，连续区 ' +
+      tCont.toFixed(2) + ' N·m。需求 ' + torque + ' N·m 均在范围内。' +
+      '</div></div>';
+  } else {
+    findingsEl.innerHTML = findings.map(f =>
+      '<div class="env-finding env-finding-' + f.level + '">' +
+      '<div class="env-finding-title">' + (f.level === 'danger' ? '●' : '▲') + ' ' + f.title + '</div>' +
+      '<div class="env-finding-text">' + f.text + '</div>' +
+      '</div>'
+    ).join('');
+  }
+
+  /* ── 画图 ── */
+  drawEnvelopeChart(canvas, env, p, hasPoint ? { torque, speed } : null, tPeak, tCont);
+}
+
+/* ── Canvas 绘图 ── */
+function drawEnvelopeChart(canvas, env, p, op, tPeak, tCont) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = 760, H = 380;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = '100%';
+  canvas.style.maxWidth = W + 'px';
+  canvas.style.height = 'auto';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const pad = { l: 62, r: 18, t: 18, b: 46 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  const maxV = env.noLoad * 1.06 || 1;
+  const maxT = env.peak * 1.18 || 1;
+
+  const X = v => pad.l + (v / maxV) * cw;
+  const Y = t => pad.t + ch - (t / maxT) * ch;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 背景
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(pad.l, pad.t, cw, ch);
+
+  // 网格
+  ctx.strokeStyle = '#1e2a36';
+  ctx.lineWidth = 1;
+  const yTicks = 5, xTicks = 6;
+  ctx.font = '11px "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = '#667788';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i <= yTicks; i++) {
+    const t = maxT * i / yTicks;
+    const y = Y(t);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cw, y); ctx.stroke();
+    ctx.fillText(t.toFixed(maxT < 5 ? 2 : 1), pad.l - 8, y);
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (let i = 0; i <= xTicks; i++) {
+    const v = maxV * i / xTicks;
+    const x = X(v);
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ch); ctx.stroke();
+    ctx.fillText(Math.round(v), x, pad.t + ch + 8);
+  }
+
+  // 连续区填充
+  ctx.beginPath();
+  ctx.moveTo(X(0), Y(0));
+  const steps = 120;
+  for (let i = 0; i <= steps; i++) {
+    const v = maxV * i / steps;
+    ctx.lineTo(X(v), Y(env.contAt(v)));
+  }
+  ctx.lineTo(X(maxV), Y(0));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(46, 160, 67, 0.16)';
+  ctx.fill();
+
+  // 峰值包络线
+  ctx.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const v = maxV * i / steps;
+    const y = Y(env.peakAt(v));
+    if (i === 0) ctx.moveTo(X(v), y); else ctx.lineTo(X(v), y);
+  }
+  ctx.strokeStyle = '#58a6ff';
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+
+  // 连续线（虚线）
+  ctx.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const v = maxV * i / steps;
+    const y = Y(env.contAt(v));
+    if (i === 0) ctx.moveTo(X(v), y); else ctx.lineTo(X(v), y);
+  }
+  ctx.setLineDash([7, 5]);
+  ctx.strokeStyle = '#3fb950';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 坐标轴
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t);
+  ctx.lineTo(pad.l, pad.t + ch);
+  ctx.lineTo(pad.l + cw, pad.t + ch);
+  ctx.stroke();
+
+  // 轴标题
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '12px "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('转速 Speed (RPM)', pad.l + cw / 2, H - 14);
+  ctx.save();
+  ctx.translate(16, pad.t + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('扭矩 Torque (N·m)', 0, 0);
+  ctx.restore();
+
+  // 工况点
+  if (op) {
+    const px = X(Math.min(op.speed, maxV));
+    const py = Y(Math.min(op.torque, maxT));
+    const inside = op.speed <= env.noLoad && op.torque <= tPeak &&
+                   (!document.getElementById('env-continuous').checked || op.torque <= tCont);
+
+    // 十字线
+    ctx.strokeStyle = inside ? 'rgba(63,185,80,.45)' : 'rgba(248,81,73,.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(px, py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px, pad.t + ch); ctx.lineTo(px, py); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 点
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, Math.PI * 2);
+    ctx.fillStyle = inside ? '#3fb950' : '#f85149';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 标签
+    const label = op.torque + ' N·m @ ' + op.speed + ' RPM';
+    ctx.font = '11px "Microsoft YaHei", sans-serif';
+    const tw = ctx.measureText(label).width;
+    let lx = px + 12, ly = py - 12;
+    if (lx + tw + 10 > pad.l + cw) lx = px - tw - 22;
+    if (ly < pad.t + 12) ly = py + 20;
+    ctx.fillStyle = 'rgba(13,17,23,.88)';
+    ctx.strokeStyle = inside ? '#3fb950' : '#f85149';
+    ctx.lineWidth = 1;
+    roundRect(ctx, lx - 5, ly - 9, tw + 10, 18, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e6edf3';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, lx, ly);
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* ── 导出 Excel ── */
+function exportEnvelopeExcel() {
+  const p = envCurrentProduct();
+  if (!p) { alert('请先选择型号'); return; }
+  if (typeof XLSX === 'undefined') { alert('Excel 组件未加载，无法导出'); return; }
+
+  const env = envCurves(p);
+  const torque = parseFloat(document.getElementById('env-torque').value);
+  const speed = parseFloat(document.getElementById('env-speed').value);
+  const voltage = parseFloat(document.getElementById('env-voltage').value);
+  const current = parseFloat(document.getElementById('env-current').value);
+  const continuous = document.getElementById('env-continuous').checked;
+  const hasPoint = isFinite(torque) && isFinite(speed);
+
+  const tPeak = hasPoint ? env.peakAt(speed) : null;
+  const tCont = hasPoint ? env.contAt(speed) : null;
+
+  const verdictEl = document.getElementById('env-verdict');
+  const verdictText = verdictEl ? verdictEl.textContent.trim() : '';
+
+  const now = new Date();
+  const dateStr = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0');
+
+  /* ── Sheet 1：校核报告 ── */
+  const rows = [
+    ['工况校核报告', '', ''],
+    ['生成时间', dateStr, ''],
+    ['', '', ''],
+    ['一、执行器基本信息', '', ''],
+    ['型号', p.full || '', ''],
+    ['简称', p.short || '', ''],
+    ['类型', p.type || '', ''],
+    ['系列', p.series || '', ''],
+    ['通信方式', p.comm || '', ''],
+    ['', '', ''],
+    ['二、标称参数', '数值', '单位'],
+    ['额定电压', p.voltage ?? '', 'V'],
+    ['减速比', p.ratio === '无减速器' ? '—' : (p.ratio ?? ''), ''],
+    ['额定扭矩', p.rated ?? '', 'N·m'],
+    ['峰值扭矩', p.peak ?? '', 'N·m'],
+    ['额定转速', p.speed ?? '', 'RPM'],
+    ['空载转速', env.noLoad ?? '', 'RPM'],
+    ['额定功率', p.power ?? '', 'W'],
+    ['额定电流', p.ratedCurrent ?? '', 'A'],
+    ['峰值电流', p.peakCurrent ?? '', 'A'],
+    ['扭矩常数', p.torqueConstant ?? '', 'N·m/A'],
+    ['效率', p.efficiency ?? '', '%'],
+    ['重量', p.weight ?? '', 'kg'],
+    ['外径', p.od ?? '', 'mm'],
+    ['长度', p.length ?? '', 'mm'],
+    ['', '', ''],
+    ['三、实际工况输入', '数值', '单位'],
+    ['实际扭矩', hasPoint ? torque : '', 'N·m'],
+    ['实际转速', hasPoint ? speed : '', 'RPM'],
+    ['供电电压', isFinite(voltage) ? voltage : '', 'V'],
+    ['实测电流', isFinite(current) ? current : '', 'A'],
+    ['连续运行', continuous ? '是' : '否', ''],
+    ['', '', ''],
+    ['四、包络判定', '数值', '单位'],
+    ['该转速处峰值包络', hasPoint ? Number(tPeak.toFixed(2)) : '', 'N·m'],
+    ['该转速处连续区上限', hasPoint ? Number(tCont.toFixed(2)) : '', 'N·m'],
+    ['峰值余量', hasPoint ? Number((tPeak - torque).toFixed(2)) : '', 'N·m'],
+    ['连续区余量', hasPoint ? Number((tCont - torque).toFixed(2)) : '', 'N·m'],
+    ['峰值利用率', (hasPoint && tPeak > 0) ? Math.round(100 * torque / tPeak) + '%' : '', ''],
+    ['连续区利用率', (hasPoint && tCont > 0) ? Math.round(100 * torque / tCont) + '%' : '', ''],
+    ['', '', ''],
+    ['五、结论', verdictText, ''],
+    ['', '', ''],
+    ['六、判定明细', '', '']
+  ];
+
+  // 把页面上已渲染的明细也带进表
+  const findingsEl = document.getElementById('env-findings');
+  if (findingsEl) {
+    findingsEl.querySelectorAll('.env-finding').forEach(f => {
+      const t = f.querySelector('.env-finding-title');
+      const x = f.querySelector('.env-finding-text');
+      rows.push([
+        t ? t.textContent.trim().replace(/^[●▲✔]\s*/, '') : '',
+        x ? x.textContent.trim() : '',
+        ''
+      ]);
+    });
+  }
+
+  rows.push(['', '', '']);
+  rows.push(['说明', '本表按「恒扭矩段 + 恒功率段」简化模型计算，仅供参考；正式选型请以官方 datasheet 为准。', '']);
+
+  const ws1 = XLSX.utils.aoa_to_sheet(rows);
+  ws1['!cols'] = [{ wch: 26 }, { wch: 62 }, { wch: 10 }];
+
+  /* ── Sheet 2：包络曲线采样（可在 Excel 里直接插入折线图）── */
+  const curve = [['转速 (RPM)', '峰值包络 (N·m)', '连续工作区 (N·m)']];
+  const N = 25;
+  for (let i = 0; i <= N; i++) {
+    const v = env.noLoad * i / N;
+    curve.push([
+      Math.round(v * 10) / 10,
+      Math.round(env.peakAt(v) * 1000) / 1000,
+      Math.round(env.contAt(v) * 1000) / 1000
+    ]);
+  }
+  if (hasPoint) {
+    curve.push(['', '', '']);
+    curve.push(['工况点', '扭矩 (N·m)', '转速 (RPM)']);
+    curve.push(['', torque, speed]);
+  }
+  const ws2 = XLSX.utils.aoa_to_sheet(curve);
+  ws2['!cols'] = [{ wch: 16 }, { wch: 18 }, { wch: 20 }];
+
+  /* ── Sheet 3：故障判定速查（可选，方便售后）── */
+  const ws3 = XLSX.utils.aoa_to_sheet([
+    ['判定项', '阈值', '实测', '结论'],
+    ['峰值包络', hasPoint ? tPeak : '', hasPoint ? torque : '',
+      hasPoint ? (torque <= tPeak ? '通过' : '超出') : ''],
+    ['连续区', hasPoint ? tCont : '', hasPoint ? torque : '',
+      hasPoint ? (torque <= tCont ? '通过' : '超出') : ''],
+    ['空载转速', env.noLoad, hasPoint ? speed : '',
+      hasPoint ? (speed <= env.noLoad ? '通过' : '超出') : ''],
+    ['额定扭矩', p.rated ?? '', hasPoint ? torque : '',
+      hasPoint ? (torque <= (p.rated || Infinity) ? '通过' : '超出') : ''],
+    ['峰值扭矩', p.peak ?? '', hasPoint ? torque : '',
+      hasPoint ? (torque <= (p.peak || Infinity) ? '通过' : '超出') : '']
+  ]);
+  ws3['!cols'] = [{ wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, '工况校核');
+  XLSX.utils.book_append_sheet(wb, ws2, '包络曲线');
+  XLSX.utils.book_append_sheet(wb, ws3, '判定速查');
+
+  const safeName = (p.short || 'motor').replace(/[\\/:*?"<>|]/g, '_');
+  const ds = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') +
+             String(now.getDate()).padStart(2, '0');
+  XLSX.writeFile(wb, '工况校核_' + safeName + '_' + ds + '.xlsx');
+}
 
 </script>
 

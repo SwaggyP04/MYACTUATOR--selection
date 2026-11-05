@@ -11,7 +11,7 @@
    =================================================================== */
 
 window.SUPPORT_META = {
-  "generatedAt": "2026-11-04",
+  "generatedAt": "2026-11-05",
   "faultCount": 11,
   "symptomCount": 4,
   "nodeCount": 35,
@@ -281,11 +281,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "是",
-          "next": null
+          "next": "ns_enable"
         },
         {
           "label": "否 / 不确定",
-          "next": null
+          "next": "ns_r_power"
         }
       ]
     },
@@ -297,15 +297,15 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "已使能，无故障",
-          "next": null
+          "next": "ns_jam"
         },
         {
           "label": "有故障",
-          "next": null
+          "next": "ns_fault"
         },
         {
           "label": "无法使能",
-          "next": null
+          "next": "ns_comms"
         }
       ]
     },
@@ -317,11 +317,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "能",
-          "next": null
+          "next": "ns_jam"
         },
         {
           "label": "不能",
-          "next": null
+          "next": "cm_proto"
         }
       ]
     },
@@ -330,11 +330,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "转动顺畅",
-          "next": null
+          "next": "ns_cal"
         },
         {
           "label": "卡死 / 卡滞",
-          "next": null
+          "next": "ns_r_jam"
         }
       ]
     },
@@ -349,11 +349,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "是，高于额定",
-          "next": null
+          "next": "oh_r_over"
         },
         {
           "label": "否，在额定以内",
-          "next": null
+          "next": "oh_duty"
         }
       ]
     },
@@ -365,11 +365,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "是",
-          "next": null
+          "next": "oh_r_thermal"
         },
         {
           "label": "否",
-          "next": null
+          "next": "oh_r_other"
         }
       ]
     },
@@ -384,11 +384,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "CAN / RS485",
-          "next": null
+          "next": "cm_term"
         },
         {
           "label": "EtherCAT",
-          "next": null
+          "next": "et_dc"
         }
       ]
     },
@@ -397,11 +397,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "是",
-          "next": null
+          "next": "cm_id"
         },
         {
           "label": "否 / 不确定",
-          "next": null
+          "next": "cm_r_term"
         }
       ]
     },
@@ -413,11 +413,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "全部正确",
-          "next": null
+          "next": "cm_wiring"
         },
         {
           "label": "不一致 / 有重复",
-          "next": null
+          "next": "cm_r_id"
         }
       ]
     },
@@ -432,11 +432,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "是",
-          "next": null
+          "next": "et_r_dc"
         },
         {
           "label": "否",
-          "next": null
+          "next": "et_esi"
         }
       ]
     },
@@ -448,11 +448,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "一致",
-          "next": null
+          "next": "et_pdo"
         },
         {
           "label": "不一致 / 不确定",
-          "next": null
+          "next": "et_r_esi"
         }
       ]
     },
@@ -464,11 +464,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "是",
-          "next": null
+          "next": "et_r_pdo"
         },
         {
           "label": "否",
-          "next": null
+          "next": "et_mode"
         }
       ]
     },
@@ -480,11 +480,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "是",
-          "next": null
+          "next": "et_r_mode"
         },
         {
           "label": "否",
-          "next": null
+          "next": "et_r_wiring"
         }
       ]
     },
@@ -499,19 +499,19 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "电流环（Kp/Ki）",
-          "next": null
+          "next": "jt_r_current"
         },
         {
           "label": "速度环（Kp/Ki）",
-          "next": null
+          "next": "jt_r_speed"
         },
         {
           "label": "位置环（Kp/Kd）",
-          "next": null
+          "next": "jt_r_position"
         },
         {
           "label": "不确定 / 没有刚改增益",
-          "next": null
+          "next": "jt_enc"
         }
       ]
     },
@@ -529,11 +529,11 @@ window.SUPPORT_TROUBLESHOOT = {
       "options": [
         {
           "label": "是",
-          "next": null
+          "next": "jt_mech"
         },
         {
           "label": "否 / 不确定",
-          "next": null
+          "next": "jt_r_enc"
         }
       ]
     },
