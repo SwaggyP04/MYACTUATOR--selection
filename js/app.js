@@ -1697,12 +1697,31 @@ const ROBOT_TEMPLATES = {
     name: '机械臂',
     icon: '🦾',
     description: '协作/工业机械臂，适用于装配、搬运、焊接等场景',
-    defaultParams: { payload: 5, reach: 800, dof: 6, speed: 1.0, backlash: 1, accuracy: 0.05 },
+    defaultParams: {
+      payload: 3, reach: 740, dof: 6,
+      upperShare: 50,
+      wristToPayload: 120,
+      linkMassPerM: 1,
+      jointSpeed: 30,
+      accelTime: 0.3,
+      safetyFactor: 1.5,
+      payloadOffset: 50,
+      j1Axis: 'vertical',
+      backlash: 15,
+      accuracy: 0.5
+    },
     paramLabels: {
       payload: '末端负载 (kg)',
       reach: '臂展 (mm)',
       dof: '自由度 (轴)',
-      speed: '末端速度 (m/s)',
+      upperShare: '上臂占臂展比 (%)',
+      wristToPayload: '腕部到负载 (mm)',
+      linkMassPerM: '连杆线密度 (kg/m)',
+      jointSpeed: '关节转速 (RPM)',
+      accelTime: '加速时间 (s)',
+      safetyFactor: '安全系数',
+      payloadOffset: '负载偏心 (mm)',
+      j1Axis: 'J1 轴方向',
       backlash: '背隙要求 (弧分)',
       accuracy: '重复定位精度 (度)'
     }
@@ -1879,51 +1898,153 @@ function generateHumanoidJoints(params) {
 }
 
 // 为机械臂生成关节配置
-function generateArmJoints(params) {
-  const payload = Number(params.payload) || 5;
-  const reachM = (Number(params.reach) || 800) / 1000;
+// 为机械臂生成关节配置（与官方 WorkBench ARM SIZING 口径一致）
+//  actuatorMasses: 可选 [m1..m7] 各执行器重量(kg)，用于把外侧执行器自重计入力矩
+//                  未传时用初值，供 generateRobotSolution 两遍迭代
+function generateArmJoints(params, actuatorMasses) {
+  const payload = Number(params.payload) || 3;
+  const reachMM = Number(params.reach) || 740;
   const dof = Number(params.dof) || 6;
 
-  const upperArmLen = reachM * 0.45;
-  const forearmLen = reachM * 0.40;
-  const wristLen = reachM * 0.15;
+  const upperShare = (Number(params.upperShare) || 50) / 100;
+  const wristToPayloadMM = Number(params.wristToPayload != null ? params.wristToPayload : 120);
+  const linkMassPerM = Number(params.linkMassPerM != null ? params.linkMassPerM : 1);
+  const accelTime = Number(params.accelTime) || 0.3;
+  const sf = Number(params.safetyFactor) || 1.5;
+  const payloadOffset = (Number(params.payloadOffset) || 0) / 1000;
+  const j1Horizontal = (params.j1Axis === 'horizontal');
 
-  // 各段自重估算（与负载无关，按结构件估）
-  const upperArmWeight = 4;
-  const forearmWeight = 2.5;
-  const wristWeight = 1;
+  // 参考样机所有关节统一按「关节转速 RPM」给出需求
+  const jointRpm = Number(params.jointSpeed) || 30;
+  const speedDeg = jointRpm * 6;              // 转成 °/s，供 recommendMotorForJoint 换算回 RPM
+
+  const g = 9.81;
+  const r1 = v => Math.round(v * 10) / 10;
+
+  // ── 杆长（m）──
+  const reach = reachMM / 1000;
+  const wrist = wristToPayloadMM / 1000;
+  const span = Math.max(0.01, reach - wrist);
+  const upper = span * upperShare;
+  const fore = span - upper;
+
+  // ── 各关节到肩的距离 ──
+  const dElbow = upper;
+  const dWrist = upper + fore;
+  const dFlange = upper + fore;
+
+  // ── 连杆质量与质心距离 ──
+  const mUpper = linkMassPerM * upper;
+  const mFore = linkMassPerM * fore;
+  const mWrist = linkMassPerM * wrist;
+
+  // ── 执行器质量（初值或上一轮结果）──
+  const am = (Array.isArray(actuatorMasses) && actuatorMasses.length >= 7)
+    ? actuatorMasses.slice(0, 7)
+    : [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.2];
+
+  const omega = speedDeg * Math.PI / 180;
+  const alpha = accelTime > 0 ? omega / accelTime : 0;
+
+  // pairs: [[质量 kg, 到参考点的距离 m], ...]
+  function solve(pairs, opts) {
+    opts = opts || {};
+    const hold = g * pairs.reduce((a, q) => a + q[0] * q[1], 0);
+    const J = pairs.reduce((a, q) => a + q[0] * q[1] * q[1], 0);
+    const accel = J * alpha;
+
+    if (opts.inertiaOnly) {
+      // 垂直轴（底座 yaw）：无重力，按惯量定，rated = peak/2
+      const pk = accel * sf;
+      return { hold: 0, accel: r1(accel), peak: r1(pk), rated: r1(pk / 2), J: +J.toFixed(4) };
+    }
+    return {
+      hold: r1(hold), accel: r1(accel),
+      peak: r1((hold + accel) * sf), rated: r1(hold * sf), J: +J.toFixed(4)
+    };
+  }
 
   const joints = [];
-  const distalLoad = payload + forearmWeight + wristWeight;   // 大臂以下的全部质量
+  function mk(id, name, part, type, priority, pairs, opts) {
+    const c = solve(pairs, opts);
+    joints.push({
+      id: id, name: name, part: part, dof: 1,
+      load: +pairs.reduce((a, q) => a + q[0], 0).toFixed(2),
+      arm: +(pairs.length ? Math.max.apply(null, pairs.map(q => q[1])) : 0).toFixed(3),
+      speed: speedDeg,
+      staticT: c.hold, accelT: c.accel,
+      peak: c.peak, rated: c.rated, J: c.J,
+      type: type, priority: priority
+    });
+  }
 
-  // J1 底座旋转：垂直轴，重力项接近 0，主要克服整臂惯量
-  joints.push(mkJoint('j1', 'J1 底座旋转', '底座',
-    distalLoad + upperArmWeight, 0.05, 120, '重载', '高', reachM));
+  // ── J2 肩俯仰：所有外侧质量（负载 + 三段连杆 + J3..J7 执行器）──
+  const shoulderPairs = [
+    [payload, reach],
+    [mUpper, upper / 2],
+    [mFore, upper + fore / 2],
+    [mWrist, upper + fore + wrist / 2],
+    [am[2], 0],                 // J3 上臂 roll，位于肩
+    [am[3], dElbow],            // J4 肘
+    [am[4], dElbow],            // J5 前臂 roll，位于肘
+    [am[5], dWrist],            // J6 腕
+    [am[6], dFlange]            // J7 法兰
+  ];
 
-  // J2 大臂俯仰：必须托起 负载 + 小臂 + 腕 + 上臂自重
-  joints.push(mkJoint('j2', 'J2 大臂俯仰', '大臂',
-    distalLoad + upperArmWeight, upperArmLen + forearmLen, 90, '重载', '高'));
+  // ── J4 肘俯仰：肘以后的质量 ──
+  const elbowPairs = [
+    [payload, fore + wrist],
+    [mFore, fore / 2],
+    [mWrist, fore + wrist / 2],
+    [am[4], 0],                 // J5 前臂 roll，位于肘
+    [am[5], fore],              // J6 腕
+    [am[6], fore]               // J7 法兰
+  ];
 
-  // J3 小臂俯仰：负载 + 腕 + 半个小臂
-  joints.push(mkJoint('j3', 'J3 小臂俯仰', '小臂',
-    payload + wristWeight + forearmWeight * 0.5, forearmLen, 120, '中载', '高'));
+  // ── J6 腕俯仰：腕以后的质量 ──
+  const wristPairs = [
+    [payload, wrist],
+    [mWrist, wrist / 2],
+    [am[6], 0]                  // J7 法兰
+  ];
 
-  // J4 腕部旋转：沿前臂轴，重力力臂小
-  joints.push(mkJoint('j4', 'J4 腕部旋转', '腕部',
-    payload, wristLen * 0.5, 180, '轻载', '中', wristLen));
+  // ── J7 法兰旋转：只看负载偏心 ──
+  const flangePairs = [
+    [payload, payloadOffset]
+  ];
 
-  // J5 腕部俯仰
-  joints.push(mkJoint('j5', 'J5 腕部俯仰', '腕部',
-    payload, wristLen, 180, '轻载', '中'));
+  // ── J1 底座 yaw ──
+  // 垂直轴：无重力，按整臂惯量定；水平轴：重力参与
+  const basePairs = [
+    [payload, reach],
+    [mUpper, upper / 2],
+    [mFore, upper + fore / 2],
+    [mWrist, upper + fore + wrist / 2],
+    [am[1], 0], [am[2], 0],
+    [am[3], dElbow], [am[4], dElbow],
+    [am[5], dWrist], [am[6], dFlange]
+  ];
 
-  // J6 末端旋转
-  joints.push(mkJoint('j6', 'J6 末端旋转', '末端',
-    payload, wristLen * 0.3, 240, '轻载', '低', wristLen * 0.5));
+  // 顺序按 J1 → J7 输出
+  mk('j1', 'J1 底座旋转', '底座', '重载', '高', basePairs, { inertiaOnly: !j1Horizontal });
+  mk('j2', 'J2 大臂俯仰', '大臂', '重载', '高', shoulderPairs);
+  // J3 上臂 roll：下一俯仰关节弯 90° 后，承受与 J4 相同的载荷
+  mk('j3', 'J3 上臂旋转', '大臂', '中载', '中', elbowPairs);
+  mk('j4', 'J4 肘部俯仰', '小臂', '重载', '高', elbowPairs);
+  // J5 前臂 roll：同理等于 J6
+  mk('j5', 'J5 前臂旋转', '小臂', '轻载', '中', wristPairs);
+  mk('j6', 'J6 腕部俯仰', '腕部', '轻载', '中', wristPairs);
 
-  // 七轴冗余
   if (dof >= 7) {
-    joints.push(mkJoint('j7', 'J7 冗余轴', '小臂',
-      payload + wristWeight, forearmLen * 0.5, 120, '中载', '中', forearmLen * 0.5));
+    mk('j7', 'J7 法兰旋转', '法兰', '轻载', '低', flangePairs);
+  } else {
+    // 6 轴时法兰旋转并入腕部，用最低优先级标记
+    mk('j7', 'J7 法兰旋转', '法兰', '轻载', '低', flangePairs);
+  }
+
+  // 6 轴时隐藏 J7 的重度参与（仍保留以保证执行器质量数组对齐）
+  if (dof < 7) {
+    joints.pop();
   }
 
   return joints;
@@ -2089,30 +2210,43 @@ function recommendMotorForJoint(joint, requirements = {}) {
     return underR * 1000 + underK * 1000 + overR * 10 + overK * 10;
   }
 
-  candidates = candidates.slice().sort((a, b) => {
-    // 1) 偏好类型（混动配置：上半身行星 / 下半身谐波）
-    const ai = preferredTypes.indexOf(a.type);
-    const bi = preferredTypes.indexOf(b.type);
-    const aT = ai === -1 ? 99 : ai;
-    const bT = bi === -1 ? 99 : bi;
-    if (aT !== bT) return aT - bT;
+  // 只有关节显式指定了模组类型（人形混动配置）时才强制类型优先；
+  // 否则一律按「重量最轻」——与官方 WorkBench ARM SIZING 一致
+  const strictPreferred = !!preferredMotorType;
 
-    // 2) 重量最轻 —— 机器人上每个关节的重量都会压给上一级关节，
-    //    这与官方 WorkBench「Picks the lightest actuator」的目标一致
+  function typeRank(p) {
+    const i = preferredTypes.indexOf(p.type);
+    return i === -1 ? 99 : i;
+  }
+
+  candidates = candidates.slice().sort((a, b) => {
+    // 1) 显式指定类型时，类型优先
+    if (strictPreferred) {
+      const aT = typeRank(a), bT = typeRank(b);
+      if (aT !== bT) return aT - bT;
+    }
+
+    // 2) 重量最轻 —— 机器人上每个关节的重量都会压给上一级关节
     const aW = a.weight == null ? 999 : a.weight;
     const bW = b.weight == null ? 999 : b.weight;
     if (Math.abs(aW - bW) > 0.02) return aW - bW;
 
-    // 3) 无抱闸优先（抱闸更重更贵，除非确实需要断电保持位置）
+    // 3) 未指定类型时，类型偏好降为次级判据
+    if (!strictPreferred) {
+      const aT = typeRank(a), bT = typeRank(b);
+      if (aT !== bT) return aT - bT;
+    }
+
+    // 4) 无抱闸优先（抱闸更重更贵，除非确实需要断电保持位置）
     const aB = a.brake === '有' ? 1 : 0;
     const bB = b.brake === '有' ? 1 : 0;
     if (aB !== bB) return aB - bB;
 
-    // 4) 同重量时取更接近需求的
+    // 5) 同重量时取更接近需求的
     const sa = score(a), sb = score(b);
     if (Math.abs(sa - sb) > 0.8) return sa - sb;
 
-    // 5) 更小外径
+    // 6) 更小外径
     const aO = a.od == null ? 999 : a.od;
     const bO = b.od == null ? 999 : b.od;
     if (aO !== bO) return aO - bO;
@@ -2185,13 +2319,36 @@ function generateRobotSolution(robotType, params) {
   };
   
   // 为每个关节推荐电机
+  //  机械臂特殊处理：外侧执行器自重会影响内侧关节力矩，
+  //  所以从远端到近端迭代 2~3 遍，直到选型稳定（与官方 WorkBench 一致）
+  if (robotType === 'arm' && typeof generateArmJoints === 'function') {
+    let masses = [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.2];
+    let prevKey = '';
+    for (let iter = 0; iter < 3; iter++) {
+      const trial = generateArmJoints(params, masses);
+      const picked = trial.map(j => {
+        const r = recommendMotorForJoint(j, requirements);
+        return r.primary;
+      });
+      const next = picked.map(p => (p && p.weight != null) ? p.weight : 0.8);
+      // 6 轴时 J7 不在列表内，用最小值补位
+      while (next.length < 7) next.push(0.2);
+      const key = next.join(',');
+      masses = next;
+      if (key === prevKey) break;
+      prevKey = key;
+    }
+    joints = generateArmJoints(params, masses);
+  }
+
   joints = joints.map(joint => {
     const result = recommendMotorForJoint(joint, requirements);
     return {
       ...joint,
       recommendations: result.candidates,
       primary: result.primary,
-      satisfaction: result.satisfaction
+      satisfaction: result.satisfaction,
+      relaxed: result.relaxed || ''
     };
   });
   
@@ -2525,6 +2682,16 @@ function updateSolutionParams() {
             <option value="mixed">上半身行星+下半身谐波</option>
             <option value="all_planetary">全行星模组</option>
             <option value="all_harmonic">全谐波模组</option>
+          </select>
+        </div>
+      `;
+    } else if (key === 'j1Axis') {
+      html += `
+        <div class="form-group">
+          <label>${label}</label>
+          <select id="sol-${key}">
+            <option value="vertical">垂直（底座 yaw）</option>
+            <option value="horizontal">水平（俯仰）</option>
           </select>
         </div>
       `;
