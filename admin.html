@@ -642,7 +642,8 @@ function addNew() {
 function delItem(i) {
   if (!confirm(`确定删除「${state.faq[i].question || '无标题'}」？\n\n（保存到 GitHub 之前还可以刷新页面放弃）`)) return;
   state.faq.splice(i, 1);
-  if (state.editing === i) state.editing = null;
+  // 删除后索引全部前移，正在编辑的表单必然对不上，直接关掉
+  state.editing = null;
   renderList();
   markDirty(true);
 }
@@ -650,53 +651,112 @@ function delItem(i) {
 // ═══════════════════════════════════════════════════════════════
 //  保存
 // ═══════════════════════════════════════════════════════════════
+// 取远端当前文件的 sha（不存在则返回 null）
+async function ghFetchSha() {
+  const r = await fetch(apiUrl() + '?ref=' + CFG.branch + '&t=' + Date.now(), {
+    headers: authHeaders(),
+    cache: 'no-store'
+  });
+  if (r.status === 404) return { sha: null, exists: false };
+  if (!r.ok) throw new Error('读取远端失败 HTTP ' + r.status);
+  const j = await r.json();
+  return { sha: j.sha, exists: true };
+}
+
+// 提交一次
+async function putFAQFile(msg, sha) {
+  const body = JSON.stringify(state.faq, null, 2);
+  const payload = { message: msg, content: b64encode(body), branch: CFG.branch };
+  if (sha) payload.sha = sha;
+  return fetch(apiUrl(), {
+    method: 'PUT',
+    headers: Object.assign(authHeaders(), { 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload)
+  });
+}
+
+// 把 GitHub 的错误体读成人话
+async function ghErrorText(r) {
+  let detail = '';
+  try {
+    const j = await r.json();
+    detail = j.message || '';
+    if (j.errors && j.errors.length) {
+      detail += ' (' + j.errors.map(e => e.message || e.code || JSON.stringify(e)).join('; ') + ')';
+    }
+  } catch (e) { /* 非 JSON 响应 */ }
+  if (r.status === 401) return 'HTTP 401 · 令牌失效，请重新登录';
+  if (r.status === 403) return 'HTTP 403 · 没有写权限（需仓库 Collaborator，且令牌 Contents 为 Read and write）';
+  if (r.status === 404) return 'HTTP 404 · 仓库或路径不存在（检查 CFG 里的 owner/repo/path）';
+  if (r.status === 409) return 'HTTP 409 · 文件在别处被修改过（sha 过期）';
+  if (r.status === 422) return 'HTTP 422 · 请求被拒绝' + (detail ? '：' + detail : '');
+  return 'HTTP ' + r.status + (detail ? ' · ' + detail : '');
+}
+
 async function saveToGitHub() {
+  // 编辑态若已失效（索引超出范围），先清掉，否则会一直卡在「请先完成编辑」
+  if (state.editing !== null && state.editing >= state.faq.length) state.editing = null;
   if (state.editing !== null) {
     alert('请先完成正在编辑的条目（点「确定」或「取消」）');
     return;
   }
+  if (!state.faq.length && !confirm('当前没有任何 FAQ，确定要保存为空列表吗？')) return;
+
   const msg = prompt('这次修改的说明（会记录在 git 提交历史里）：',
                      '更新 FAQ（' + new Date().toLocaleString('zh-CN') + '）');
   if (msg === null) return;
 
-  document.getElementById('saveBtn').disabled = true;
-  document.getElementById('saveBtn2').disabled = true;
+  const btn1 = document.getElementById('saveBtn');
+  const btn2 = document.getElementById('saveBtn2');
+  if (btn1) btn1.disabled = true;
+  if (btn2) btn2.disabled = true;
   showStatus('正在提交到 GitHub…', 'info');
 
-  const body = JSON.stringify(state.faq, null, 2);
-  const payload = {
-    message: msg || '更新 FAQ',
-    content: b64encode(body),
-    branch: CFG.branch
-  };
-  if (state.sha) payload.sha = state.sha;
-
   try {
-    const r = await fetch(apiUrl(), {
-      method: 'PUT',
-      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    let r = await putFAQFile(msg || '更新 FAQ', state.sha);
 
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      if (r.status === 403) throw new Error('没有写权限 —— 请确认该账号是仓库 Collaborator，且令牌 Contents 权限为 Read and write');
-      if (r.status === 409) throw new Error('文件在别处被修改过，请点「重新读取」后再改');
-      throw new Error(err.message || ('HTTP ' + r.status));
+    // sha 过期 / 文件被删 / 需要 sha：取最新 sha 后重试一次
+    if (r.status === 409 || r.status === 422 || r.status === 404) {
+      showStatus('文件已变化，正在重新获取版本号后重试…', 'info');
+      const cur = await ghFetchSha();
+      state.sha = cur.sha;
+      r = await putFAQFile(msg || '更新 FAQ', cur.sha);
     }
+
+    if (!r.ok) throw new Error(await ghErrorText(r));
 
     const j = await r.json();
     state.sha = j.content.sha;
+
+    // 用远端返回的内容核对一遍，确认这次写的确实是当前列表
+    let verify = '';
+    try {
+      const check = await fetch(apiUrl() + '?ref=' + CFG.branch + '&t=' + Date.now(), {
+        headers: authHeaders(), cache: 'no-store'
+      });
+      if (check.ok) {
+        const cj = await check.json();
+        const remote = JSON.parse(b64decode(cj.content));
+        if (Array.isArray(remote) && remote.length === state.faq.length) {
+          verify = '\n核对：远端现有 ' + remote.length + ' 条，与当前列表一致';
+        } else if (Array.isArray(remote)) {
+          verify = '\n⚠ 核对：远端现有 ' + remote.length + ' 条，当前列表 ' + state.faq.length + ' 条，请重新读取确认';
+        }
+      }
+    } catch (e) { /* 核对失败不影响主流程 */ }
+
     markDirty(false);
     showStatus(
       '✔ 已提交到 GitHub\n' +
-      '提交：' + j.commit.sha.slice(0, 7) + '\n' +
-      'GitHub Pages 约 1 分钟内自动更新',
+      '提交：' + j.commit.sha.slice(0, 7) + verify + '\n' +
+      'GitHub Pages 约 1 分钟后自动更新（网站已加缓存穿透，刷新即可看到）',
       'ok'
     );
   } catch (e) {
     showStatus('保存失败：' + e.message, 'err');
     markDirty(true);
+    if (btn1) btn1.disabled = false;
+    if (btn2) btn2.disabled = false;
   }
 }
 
