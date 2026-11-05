@@ -1690,6 +1690,9 @@ function initEnvModelSelect() {
 
 /* ── 主计算 + 渲染 ── */
 function renderEnvelopeCheck() {
+  // 不论从子标签还是顶层标签进入，都先确保型号下拉已填充，
+  // 否则首次切到「工况校核」时会是一个空列表
+  initEnvModelSelect();
   const p = envCurrentProduct();
   const verdictEl = document.getElementById('env-verdict');
   const findingsEl = document.getElementById('env-findings');
