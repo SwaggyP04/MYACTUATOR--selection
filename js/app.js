@@ -1146,7 +1146,22 @@ function faqMarkdown(text) {
       out.push('<li>' + ul[1] + '</li>');
     } else {
       if (listType) { out.push('</' + listType + '>'); listType = null; }
-      out.push('<p>' + line + '</p>');
+
+      // 独占一行的图片 → 自适应大图
+      const imgOnly = line.match(/^\s*!\[([^\]]*)\]\(([^)\s]+)\)\s*$/);
+      if (imgOnly) {
+        out.push('<figure class="faq-figure">' +
+          '<img class="faq-img" loading="lazy" src="' + imgOnly[2] + '" alt="' + imgOnly[1] + '"' +
+          ' onclick="openFaqImage(this.src)" title="点击放大">' +
+          (imgOnly[1] ? '<figcaption>' + imgOnly[1] + '</figcaption>' : '') +
+          '</figure>');
+        continue;
+      }
+
+      // 行内图片
+      const inline = line.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,
+        '<img class="faq-img-inline" loading="lazy" src="$2" alt="$1" onclick="openFaqImage(this.src)" title="点击放大">');
+      out.push('<p>' + inline + '</p>');
     }
   }
   if (listType) out.push('</' + listType + '>');
@@ -1172,7 +1187,7 @@ function renderFAQList() {
         '<span class="faq-arrow" id="faq-arrow-' + i + '">▸</span>' +
       '</div>' +
       '<div class="faq-answer" id="faq-answer-' + i + '" style="display:none;">' +
-        faqMarkdown(f.answer) +
+        faqMarkdown(f.answer) + faqImageGallery(f) +
       '</div>' +
     '</div>';
   }).join('');
@@ -1199,7 +1214,10 @@ function toggleFAQItem(i) {
           FAQ_KNOWLEDGE.push({
             question: x.question || '',
             keywords: Array.isArray(x.keywords) ? x.keywords : [],
-            answer: String(x.answer == null ? '' : x.answer)
+            answer: String(x.answer == null ? '' : x.answer),
+            images: Array.isArray(x.images)
+              ? x.images.filter(function (im) { return im && im.url; })
+              : []
           });
         });
         console.log('[FAQ] 已从 data/faq.json 加载 ' + FAQ_KNOWLEDGE.length + ' 条');
@@ -3173,4 +3191,39 @@ function smartGenerateSolution() {
       resultDiv.insertBefore(notice, resultDiv.firstChild);
     }
   }, 100);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   FAQ 图片：画廊渲染 + 灯箱
+   ─────────────────────────────────────────────────────────────── */
+function faqImageGallery(f) {
+  const imgs = Array.isArray(f && f.images) ? f.images.filter(x => x && x.url) : [];
+  if (!imgs.length) return '';
+  return '<div class="faq-gallery">' + imgs.map(function (im) {
+    const cap = im.caption ? faqEscape(im.caption) : '';
+    return '<figure class="faq-figure">' +
+      '<img class="faq-img" loading="lazy" src="' + faqEscape(im.url) + '" alt="' + cap + '"' +
+      ' onclick="openFaqImage(this.src)" title="点击放大">' +
+      (cap ? '<figcaption>' + cap + '</figcaption>' : '') +
+      '</figure>';
+  }).join('') + '</div>';
+}
+
+function openFaqImage(src) {
+  if (!src) return;
+  let ov = document.getElementById('faqLightbox');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'faqLightbox';
+    ov.className = 'faq-lightbox';
+    ov.innerHTML = '<img alt=""><span class="faq-lightbox-close">✕</span>';
+    ov.addEventListener('click', function () { ov.classList.remove('on'); });
+    document.body.appendChild(ov);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { const x = document.getElementById('faqLightbox'); if (x) x.classList.remove('on'); }
+    });
+  }
+  ov.querySelector('img').src = src;
+  ov.classList.add('on');
 }

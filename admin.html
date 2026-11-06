@@ -96,6 +96,22 @@
 
   .hint { font-size: 12px; color: #667788; margin-top: 5px; }
 </style>
+
+<style>
+.img-list { display:flex; flex-direction:column; gap:12px; margin-bottom:10px; }
+.img-empty { font-size:12.5px; color:#5a6a7a; padding:10px 0; }
+.img-card { display:flex; gap:12px; align-items:flex-start; background:#0d1117;
+            border:1px solid #253040; border-radius:8px; padding:10px; }
+.img-card img { width:120px; height:90px; object-fit:contain; background:#080b10;
+                border-radius:6px; border:1px solid #1b2430; flex-shrink:0; }
+.img-body { flex:1; display:flex; flex-direction:column; gap:8px; min-width:0; }
+.img-body input { padding:8px 10px; font-size:13px; }
+.img-pick { display:inline-flex; align-items:center; gap:8px; padding:9px 16px;
+            background:#161d27; border:1px dashed #33465c; border-radius:8px;
+            color:#79c0ff; font-size:13px; cursor:pointer; }
+.img-pick:hover { border-color:#4a9eff; background:#1a2431; }
+.img-hint { font-size:11.5px; color:#5a6a7a; margin-top:8px; line-height:1.6; }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -201,7 +217,8 @@ let state = {
   sha: null,        // 当前文件的 blob sha，更新时必须带上
   faq: [],          // 当前内存里的 FAQ
   dirty: false,     // 是否有未保存改动
-  editing: null     // 正在编辑的索引
+  editing: null,    // 正在编辑的索引
+  editImages: []    // 正在编辑的条目所附图片 [{url, caption}]
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -481,8 +498,19 @@ function renderEditForm(f, i) {
         </div>
         <div class="row">
           <div class="grow">
-            <label>答案（支持 Markdown：**粗体**、换行、- 列表）</label>
+            <label>答案（支持 Markdown：**粗体**、换行、- 列表、![说明](图片地址)）</label>
             <textarea id="ed-a" rows="14">${esc(f.answer || '')}</textarea>
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>图片（示意图 / 接线图 / 曲线，可多张，显示在答案下方）</label>
+            <div id="ed-imgs" class="img-list"></div>
+            <label class="img-pick">
+              <input type="file" accept="image/*" multiple onchange="handleFaqImageFiles(this)" hidden>
+              <span>＋ 选择图片上传</span>
+            </label>
+            <div class="img-hint">自动压缩到最长边 1600px 转 WebP，上传到仓库 images/faq/，保存 FAQ 时一并生效。</div>
           </div>
         </div>
         <div class="row">
@@ -502,12 +530,16 @@ function toggleBody(i) {
 // ═══════════════════════════════════════════════════════════════
 function startEdit(i) {
   state.editing = i;
+  const f = state.faq[i] || {};
+  state.editImages = Array.isArray(f.images) ? JSON.parse(JSON.stringify(f.images)) : [];
   renderList();
+  renderEditImages();
   document.getElementById('ed-q')?.focus();
 }
 
 function cancelEdit() {
   state.editing = null;
+  state.editImages = [];
   renderList();
 }
 
@@ -520,6 +552,9 @@ function applyEdit(i) {
   if (!q) { alert('问题标题不能为空'); return; }
   if (!a.trim()) { alert('答案不能为空'); return; }
 
+  const imgs = (state.editImages || []).filter(x => x && x.url)
+    .map(x => ({ url: x.url, caption: (x.caption || '').trim() }));
+
   state.faq[i] = {
     ...state.faq[i],
     question: q,
@@ -527,7 +562,11 @@ function applyEdit(i) {
     answer: a,
     updated_at: new Date().toISOString().slice(0, 10)
   };
+  if (imgs.length) state.faq[i].images = imgs;
+  else delete state.faq[i].images;
+
   state.editing = null;
+  state.editImages = [];
   renderList();
   markDirty(true);
 }
@@ -554,6 +593,117 @@ function delItem(i) {
   state.editing = null;
   renderList();
   markDirty(true);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  FAQ 图片上传
+// ═══════════════════════════════════════════════════════════════
+const FAQ_IMG_DIR = 'images/faq/';
+const FAQ_IMG_MAX_DIM = 1600;
+const FAQ_IMG_QUALITY = 0.92;
+const FAQ_IMG_RAW_LIMIT = 120 * 1024;   // 小于此体积且已是 webp/jpg/png 就直接传
+const FAQ_IMG_MAX_BYTES = 12 * 1024 * 1024;
+
+function renderEditImages() {
+  const box = document.getElementById('ed-imgs');
+  if (!box) return;
+  const imgs = state.editImages || [];
+  if (!imgs.length) {
+    box.innerHTML = '<div class="img-empty">还没有图片</div>';
+    return;
+  }
+  box.innerHTML = imgs.map((im, k) => `
+    <div class="img-card">
+      <img src="${esc(im.url)}" alt="" loading="lazy">
+      <div class="img-body">
+        <input type="text" value="${esc(im.caption || '')}" placeholder="图片说明（可选）"
+               oninput="state.editImages[${k}].caption = this.value">
+        <button class="danger sm" onclick="removeEditImage(${k})">删除</button>
+      </div>
+    </div>`).join('');
+}
+
+function removeEditImage(k) {
+  if (!state.editImages) return;
+  state.editImages.splice(k, 1);
+  renderEditImages();
+}
+
+// 压缩：长边超过 1600 或体积偏大时转 WebP
+async function compressFaqImage(file) {
+  if (file.size <= FAQ_IMG_RAW_LIMIT && /^image\/(png|jpe?g|webp)$/.test(file.type)) {
+    const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
+    return { blob: file, ext };
+  }
+  if (typeof createImageBitmap !== 'function') {
+    throw new Error('当前浏览器不支持图片压缩，请换 Chrome / Edge');
+  }
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, FAQ_IMG_MAX_DIM / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * scale));
+  const h = Math.max(1, Math.round(bmp.height * scale));
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
+  const blob = await new Promise(res => cv.toBlob(res, 'image/webp', FAQ_IMG_QUALITY));
+  if (!blob) throw new Error('图片压缩失败');
+  return { blob, ext: 'webp' };
+}
+
+function blobToB64(blob) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result).split(',')[1]);
+    fr.onerror = () => rej(new Error('读取文件失败'));
+    fr.readAsDataURL(blob);
+  });
+}
+
+async function uploadFaqImage(file) {
+  const { blob, ext } = await compressFaqImage(file);
+  const b64 = await blobToB64(blob);
+  const name = Date.now().toString(36) + '-' +
+               Math.random().toString(36).slice(2, 8) + '.' + ext;
+  const path = FAQ_IMG_DIR + name;
+  const url = 'https://api.github.com/repos/' + CFG.owner + '/' + CFG.repo +
+              '/contents/' + path;
+  const r = await fetch(url, {
+    method: 'PUT',
+    headers: Object.assign(authHeaders(), { 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      message: '上传 FAQ 图片 ' + name,
+      content: b64,
+      branch: CFG.branch
+    })
+  });
+  if (!r.ok) throw new Error(await ghErrorText(r));
+  return { path, size: blob.size };
+}
+
+async function handleFaqImageFiles(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  if (!state.editImages) state.editImages = [];
+
+  for (const f of files) {
+    if (!/^image\//.test(f.type)) { alert('不是图片文件：' + f.name); continue; }
+    if (f.size > FAQ_IMG_MAX_BYTES) {
+      alert('图片超过 12MB：' + f.name + '\n请先压缩再上传');
+      continue;
+    }
+    showStatus('上传中：' + f.name + ' …', 'info');
+    try {
+      const { path, size } = await uploadFaqImage(f);
+      state.editImages.push({ url: path, caption: '' });
+      renderEditImages();
+      showStatus('已上传 ' + f.name + '（' + Math.round(size / 1024) + ' KB）', 'ok');
+    } catch (e) {
+      showStatus('上传失败', 'err');
+      alert('上传失败：' + f.name + '\n\n' + (e.message || e));
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
