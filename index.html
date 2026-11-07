@@ -2645,6 +2645,44 @@ function exportConstExcel() {
   const ds = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
   XLSX.writeFile(wb, '电机常数_' + (p.short || 'motor') + '_' + ds + '.xlsx');
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   支持中心数据在线覆盖
+   ───────────────────────────────────────────────────────────────
+   data/faults.json / data/fields.json 由后台编辑，
+   加载成功则覆盖 support_data.js 里的内置数据。
+   ═══════════════════════════════════════════════════════════════ */
+(function loadSupportOverrides() {
+  var t = Date.now();
+
+  fetch('data/faults.json?t=' + t, { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!Array.isArray(d) || !d.length) return;
+      window.SUPPORT_FAULTS = d;
+      var p = document.getElementById('sup-faults');
+      if (p && p.classList.contains('active')) renderSupportFaults();
+      console.log('[Support] 故障码已从 data/faults.json 加载 ' + d.length + ' 条');
+    })
+    .catch(function () {});
+
+  fetch('data/fields.json?t=' + t, { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!Array.isArray(d) || !d.length) return;
+      var obj = {};
+      d.forEach(function (x) {
+        if (x && x.key) obj[x.key] = { zh: x.zh || '', en: x.en || '' };
+      });
+      if (!Object.keys(obj).length) return;
+      window.SUPPORT_FIELD_HELP = obj;
+      var p = document.getElementById('sup-fields');
+      if (p && p.classList.contains('active')) renderSupportFields();
+      console.log('[Support] 参数说明已从 data/fields.json 加载 ' + d.length + ' 条');
+    })
+    .catch(function () {});
+})();
+
 </script>
 
 </body>

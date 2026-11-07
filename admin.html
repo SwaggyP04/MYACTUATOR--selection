@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FAQ 管理后台 · 脉塔电机选型系统</title>
+<title>内容管理后台 · 脉塔电机选型系统</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -95,6 +95,12 @@
   .meta { font-size: 12px; color: #667788; }
 
   .hint { font-size: 12px; color: #667788; margin-top: 5px; }
+  .ds-tabs { display:flex; align-items:center; gap:8px; margin:0 0 12px; flex-wrap:wrap; }
+  .ds-tabs button { padding:9px 16px; font-size:13px; background:#161d27; color:#aabbcc;
+                    border:1px solid #2a3a4a; border-radius:8px; cursor:pointer; }
+  .ds-tabs button:hover { border-color:#4a9eff; color:#79c0ff; }
+  .ds-tabs button.on { background:rgba(74,158,255,.15); border-color:#4a9eff; color:#79c0ff; font-weight:600; }
+  .ds-tabs .meta { margin-left:auto; }
 </style>
 
 <style>
@@ -118,7 +124,7 @@
 
 <!-- ══════════════ 第二道门：GitHub 令牌 ══════════════ -->
 <div id="login" class="card" style="display:none">
-  <h1>FAQ 管理后台</h1>
+  <h1>内容管理后台</h1>
   <div class="sub">脉塔电机选型系统 · 仅限授权用户</div>
 
   
@@ -159,16 +165,23 @@
 
 <!-- ══════════════ 主体 ══════════════ -->
 <div id="app" style="display:none">
-  <h1>FAQ 管理后台</h1>
+  <h1>内容管理后台</h1>
   <div class="sub" id="repoInfo"></div>
   <div id="accountInfo" style="margin-top:6px;font-size:13px;color:#7ee787;"></div>
 
   <div id="status"></div>
 
+  <div class="ds-tabs" id="dsTabs">
+    <button data-ds="faq" onclick="switchDataset('faq')">📋 FAQ</button>
+    <button data-ds="faults" onclick="switchDataset('faults')">🔴 故障码</button>
+    <button data-ds="fields" onclick="switchDataset('fields')">📖 参数说明</button>
+    <span class="meta" id="dsTitle"></span>
+  </div>
+
   <div class="card">
     <div id="toolbar">
-      <button onclick="addNew()">＋ 新增 FAQ</button>
-      <button class="sec" onclick="loadFAQ(true)">↻ 重新读取</button>
+      <button id="addBtn" onclick="addNew()">＋ 新增</button>
+      <button class="sec" onclick="loadDataset(true)">↻ 重新读取</button>
       <button class="grow" style="visibility:hidden"></button>
       <span class="meta" id="dirtyInfo"></span>
       <button id="saveBtn" onclick="saveToGitHub()" disabled>保存到 GitHub</button>
@@ -211,6 +224,45 @@ const CFG = {
 
 const LS_KEY = 'faq_admin_token';
 
+// ═══════════════════════════════════════════════════════════════
+//  可编辑数据集
+// ═══════════════════════════════════════════════════════════════
+const DATASETS = {
+  faq: {
+    key: 'faq', label: 'FAQ', path: 'data/faq.json', unit: '条',
+    title: function (f) { return f.question || '(无标题)'; },
+    tags: function (f) {
+      return (f.keywords || []).map(function (k) { return '<span class="faq-kw">' + esc(k) + '</span>'; }).join('');
+    },
+    body: function (f) { return f.answer || ''; },
+    blank: function () {
+      return { id: Date.now(), question: '', keywords: [], answer: '', sort_order: 0, updated_at: today() };
+    }
+  },
+  faults: {
+    key: 'faults', label: '故障码', path: 'data/faults.json', unit: '条',
+    title: function (f) { return (f.id ? '[' + f.id + '] ' : '') + (f.name || '(未命名)'); },
+    tags: function (f) {
+      return '<span class="faq-kw">' + esc(f.category || '未分类') + '</span>' +
+             (f.nameEn ? '<span class="faq-kw" style="opacity:.6">' + esc(f.nameEn) + '</span>' : '');
+    },
+    body: function (f) { return (f.causes || []).join('\n'); },
+    blank: function () {
+      return { id: 'F' + String(Date.now()).slice(-4), code: '', category: '电源',
+               categoryEn: '', name: '', nameEn: '', causes: [], checks: [], fix: '' };
+    }
+  },
+  fields: {
+    key: 'fields', label: '参数说明', path: 'data/fields.json', unit: '条',
+    title: function (f) { return f.key || '(无键名)'; },
+    tags: function () { return ''; },
+    body: function (f) { return f.zh || ''; },
+    blank: function () { return { key: '', zh: '', en: '' }; }
+  }
+};
+function ds() { return DATASETS[state.dataset] || DATASETS.faq; }
+function today() { return new Date().toISOString().slice(0, 10); }
+
 let state = {
   token: '',
   login: '',        // GitHub 登录名
@@ -218,7 +270,9 @@ let state = {
   faq: [],          // 当前内存里的 FAQ
   dirty: false,     // 是否有未保存改动
   editing: null,    // 正在编辑的索引
-  editImages: []    // 正在编辑的条目所附图片 [{url, caption}]
+  editImages: [],   // 正在编辑的条目所附图片 [{url, caption}]
+  dataset: 'faq',   // 当前数据集：faq | faults | fields
+  data: []          // 当前数据集的条目
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -251,7 +305,7 @@ function b64decode(b64) {
 }
 
 function apiUrl() {
-  return `https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${CFG.path}`;
+  return `https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${ds().path}`;
 }
 
 function authHeaders() {
@@ -402,23 +456,27 @@ function enterApp(login, permText) {
   if (acc) {
     acc.innerHTML = `👤 已登录：<b>${esc(login || '')}</b> · 权限：${esc(permText || '')}`;
   }
-  loadFAQ();
+  renderDatasetTabs();
+  loadDataset();
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  读取
 // ═══════════════════════════════════════════════════════════════
-async function loadFAQ(force = false) {
+async function loadDataset(force = false) {
   if (state.dirty && force && !confirm('有未保存的改动，确定放弃并重新读取？')) return;
-  showStatus('正在从 GitHub 读取…', 'info');
+  const meta = ds();
+  showStatus('正在读取 ' + meta.path + ' …', 'info');
 
   try {
-    const r = await fetch(apiUrl() + '?ref=' + CFG.branch, { headers: authHeaders() });
+    const r = await fetch(apiUrl() + '?ref=' + CFG.branch + '&t=' + Date.now(), {
+      headers: authHeaders(), cache: 'no-store'
+    });
 
     if (r.status === 404) {
-      state.faq = [];
+      state.data = [];
       state.sha = null;
-      showStatus('data/faq.json 还不存在。新增第一条后保存，会自动创建该文件。', 'info');
+      showStatus(meta.path + ' 还不存在。新增第一条后保存，会自动创建该文件。', 'info');
       renderList();
       markDirty(false);
       return;
@@ -435,11 +493,11 @@ async function loadFAQ(force = false) {
     }
     if (!Array.isArray(data)) throw new Error('文件内容不是数组');
 
-    state.faq = data;
+    state.data = data;
     state.editing = null;
     renderList();
     markDirty(false);
-    showStatus(`已读取 ${data.length} 条 FAQ`, 'ok');
+    showStatus('已读取 ' + data.length + ' ' + meta.unit + ' ' + meta.label, 'ok');
   } catch (e) {
     showStatus('读取失败：' + e.message, 'err');
   }
@@ -450,23 +508,23 @@ async function loadFAQ(force = false) {
 // ═══════════════════════════════════════════════════════════════
 function renderList() {
   const box = document.getElementById('list');
-  if (!state.faq.length) {
-    box.innerHTML = '<div class="card" style="text-align:center;color:#667788">暂无 FAQ，点「＋ 新增 FAQ」开始</div>';
+  const meta = ds();
+  if (!state.data.length) {
+    box.innerHTML = '<div class="card" style="text-align:center;color:#667788">' +
+      '暂无内容，点「＋ 新增」添加第一条 ' + esc(meta.label) + '</div>';
     return;
   }
 
-  box.innerHTML = state.faq.map((f, i) => {
+  box.innerHTML = state.data.map((f, i) => {
     if (state.editing === i) return renderEditForm(f, i);
-
-    const kws = (f.keywords || []).map(k => `<span class="faq-kw">${esc(k)}</span>`).join('');
     return `
       <div class="faq-item">
         <div class="faq-head">
           <span class="faq-idx">${i + 1}</span>
-          <div class="faq-q">${esc(f.question || '(无标题)')}</div>
+          <div class="faq-q">${esc(meta.title(f))}</div>
         </div>
-        <div style="margin-left:36px">${kws}</div>
-        <div class="faq-body" id="body-${i}" style="margin-left:36px">${esc(f.answer || '')}</div>
+        <div style="margin-left:36px">${meta.tags(f)}</div>
+        <div class="faq-body" id="body-${i}" style="margin-left:36px">${esc(meta.body(f))}</div>
         <div class="faq-actions" style="margin-left:36px">
           <button class="sec sm" onclick="toggleBody(${i})">展开/收起</button>
           <button class="sec sm" onclick="startEdit(${i})">编辑</button>
@@ -474,15 +532,30 @@ function renderList() {
         </div>
       </div>`;
   }).join('');
+
+  // 条目数随时刷新
+  if (typeof renderDatasetTabs === 'function') renderDatasetTabs();
 }
 
 function renderEditForm(f, i) {
+  let inner;
+  if (state.dataset === 'faults') inner = faultForm(f, i);
+  else if (state.dataset === 'fields') inner = fieldForm(f, i);
+  else inner = faqForm(f, i);
+
   return `
     <div class="faq-item editing">
       <div class="faq-head">
         <span class="faq-idx">${i + 1}</span>
-        <div class="faq-q">编辑中…</div>
+        <div class="faq-q">编辑中…（${esc(ds().label)}）</div>
       </div>
+      ${inner}
+    </div>`;
+}
+
+// ── FAQ 表单 ──
+function faqForm(f, i) {
+  return `
       <div class="edit-form" style="margin:12px 0 0 36px">
         <div class="row">
           <div class="grow">
@@ -517,8 +590,110 @@ function renderEditForm(f, i) {
           <button onclick="applyEdit(${i})">✔ 确定</button>
           <button class="sec" onclick="cancelEdit()">取消</button>
         </div>
-      </div>
-    </div>`;
+      </div>`;
+}
+
+// ── 故障码表单 ──
+function faultForm(f, i) {
+  var arr = function (a) { return Array.isArray(a) ? a : (a ? [a] : []); };
+  return `
+      <div class="edit-form" style="margin:12px 0 0 36px">
+        <div class="row">
+          <div class="grow">
+            <label>编号</label>
+            <input type="text" id="fl-id" value="${esc(f.id || '')}" placeholder="F01">
+          </div>
+          <div class="grow">
+            <label>分类</label>
+            <input type="text" id="fl-cat" value="${esc(f.category || '')}" placeholder="电源 / 电流 / 温度 / 通讯…">
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>名称（中文）</label>
+            <input type="text" id="fl-name" value="${esc(f.name || '')}">
+          </div>
+          <div class="grow">
+            <label>名称（英文，可空）</label>
+            <input type="text" id="fl-nameEn" value="${esc(f.nameEn || '')}">
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>可能原因（一行一条）</label>
+            <textarea id="fl-causes" rows="5">${esc(arr(f.causes).join('\n'))}</textarea>
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>检查方法（一行一条）</label>
+            <textarea id="fl-checks" rows="5">${esc(arr(f.checks).join('\n'))}</textarea>
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>处理方法</label>
+            <textarea id="fl-fix" rows="4">${esc(f.fix || '')}</textarea>
+          </div>
+        </div>
+        <div class="row">
+          <button onclick="applyEdit(${i})">✔ 确定</button>
+          <button class="sec" onclick="cancelEdit()">取消</button>
+        </div>
+      </div>`;
+}
+
+// ── 参数说明表单 ──
+function fieldForm(f, i) {
+  return `
+      <div class="edit-form" style="margin:12px 0 0 36px">
+        <div class="row">
+          <div class="grow">
+            <label>字段键名（与数据里的字段一致，如 rated_torque_Nm）</label>
+            <input type="text" id="fd-key" value="${esc(f.key || '')}" placeholder="rated_torque_Nm">
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>中文说明</label>
+            <textarea id="fd-zh" rows="4">${esc(f.zh || '')}</textarea>
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label>英文说明（可空）</label>
+            <textarea id="fd-en" rows="4">${esc(f.en || '')}</textarea>
+          </div>
+        </div>
+        <div class="row">
+          <button onclick="applyEdit(${i})">✔ 确定</button>
+          <button class="sec" onclick="cancelEdit()">取消</button>
+        </div>
+      </div>`;
+}
+
+// ── 数据集切换 ──
+async function switchDataset(k) {
+  if (k === state.dataset) return;
+  if (state.dirty && !confirm('当前有未保存的改动，切换数据集会丢弃，继续？')) return;
+  state.dataset = k;
+  state.data = [];
+  state.sha = null;
+  state.editing = null;
+  state.editImages = [];
+  markDirty(false);
+  renderDatasetTabs();
+  renderList();
+  await loadDataset();
+}
+
+function renderDatasetTabs() {
+  document.querySelectorAll('#dsTabs button').forEach(function (b) {
+    b.classList.toggle('on', b.dataset.ds === state.dataset);
+  });
+  const meta = ds();
+  const t = document.getElementById('dsTitle');
+  if (t) t.textContent = meta.path + '　共 ' + state.data.length + ' ' + meta.unit;
 }
 
 function toggleBody(i) {
@@ -530,10 +705,11 @@ function toggleBody(i) {
 // ═══════════════════════════════════════════════════════════════
 function startEdit(i) {
   state.editing = i;
-  const f = state.faq[i] || {};
-  state.editImages = Array.isArray(f.images) ? JSON.parse(JSON.stringify(f.images)) : [];
+  const f = state.data[i] || {};
+  state.editImages = (state.dataset === 'faq' && Array.isArray(f.images))
+    ? JSON.parse(JSON.stringify(f.images)) : [];
   renderList();
-  renderEditImages();
+  if (state.dataset === 'faq') renderEditImages();
   document.getElementById('ed-q')?.focus();
 }
 
@@ -544,6 +720,12 @@ function cancelEdit() {
 }
 
 function applyEdit(i) {
+  if (state.dataset === 'faults') return applyFault(i);
+  if (state.dataset === 'fields') return applyField(i);
+  return applyFaq(i);
+}
+
+function applyFaq(i) {
   const q = document.getElementById('ed-q').value.trim();
   const kw = document.getElementById('ed-kw').value
     .split(/[,，]/).map(s => s.trim()).filter(Boolean);
@@ -555,15 +737,15 @@ function applyEdit(i) {
   const imgs = (state.editImages || []).filter(x => x && x.url)
     .map(x => ({ url: x.url, caption: (x.caption || '').trim() }));
 
-  state.faq[i] = {
-    ...state.faq[i],
+  state.data[i] = {
+    ...state.data[i],
     question: q,
     keywords: kw,
     answer: a,
     updated_at: new Date().toISOString().slice(0, 10)
   };
-  if (imgs.length) state.faq[i].images = imgs;
-  else delete state.faq[i].images;
+  if (imgs.length) state.data[i].images = imgs;
+  else delete state.data[i].images;
 
   state.editing = null;
   state.editImages = [];
@@ -571,15 +753,44 @@ function applyEdit(i) {
   markDirty(true);
 }
 
-function addNew() {
-  state.faq.unshift({
-    id: Date.now(),
-    question: '',
-    keywords: [],
-    answer: '',
-    sort_order: 0,
-    updated_at: new Date().toISOString().slice(0, 10)
+function applyFault(i) {
+  const val = function (id) { const el = document.getElementById(id); return el ? el.value : ''; };
+  const lines = function (id) {
+    return val(id).split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+  };
+  const name = val('fl-name').trim();
+  if (!name) { alert('名称不能为空'); return; }
+
+  state.data[i] = Object.assign({}, state.data[i], {
+    id: val('fl-id').trim(),
+    category: val('fl-cat').trim(),
+    name: name,
+    nameEn: val('fl-nameEn').trim(),
+    causes: lines('fl-causes'),
+    checks: lines('fl-checks'),
+    fix: val('fl-fix').trim()
   });
+  state.editing = null;
+  renderList();
+  markDirty(true);
+}
+
+function applyField(i) {
+  const val = function (id) { const el = document.getElementById(id); return el ? el.value : ''; };
+  const key = val('fd-key').trim();
+  if (!key) { alert('字段键名不能为空'); return; }
+  const dup = state.data.findIndex(function (x, k) { return k !== i && x.key === key; });
+  if (dup >= 0) { alert('键名已存在：' + key); return; }
+  if (!val('fd-zh').trim()) { alert('中文说明不能为空'); return; }
+
+  state.data[i] = { key: key, zh: val('fd-zh').trim(), en: val('fd-en').trim() };
+  state.editing = null;
+  renderList();
+  markDirty(true);
+}
+
+function addNew() {
+  state.data.unshift(ds().blank());
   state.editing = 0;
   renderList();
   markDirty(true);
@@ -587,8 +798,8 @@ function addNew() {
 }
 
 function delItem(i) {
-  if (!confirm(`确定删除「${state.faq[i].question || '无标题'}」？\n\n（保存到 GitHub 之前还可以刷新页面放弃）`)) return;
-  state.faq.splice(i, 1);
+  if (!confirm(`确定删除「${ds().title(state.data[i])}」？\n\n（保存到 GitHub 之前还可以刷新页面放弃）`)) return;
+  state.data.splice(i, 1);
   // 删除后索引全部前移，正在编辑的表单必然对不上，直接关掉
   state.editing = null;
   renderList();
@@ -723,7 +934,7 @@ async function ghFetchSha() {
 
 // 提交一次
 async function putFAQFile(msg, sha) {
-  const body = JSON.stringify(state.faq, null, 2);
+  const body = JSON.stringify(state.data, null, 2);
   const payload = { message: msg, content: b64encode(body), branch: CFG.branch };
   if (sha) payload.sha = sha;
   return fetch(apiUrl(), {
@@ -766,15 +977,15 @@ async function ghErrorText(r) {
 
 async function saveToGitHub() {
   // 编辑态若已失效（索引超出范围），先清掉，否则会一直卡在「请先完成编辑」
-  if (state.editing !== null && state.editing >= state.faq.length) state.editing = null;
+  if (state.editing !== null && state.editing >= state.data.length) state.editing = null;
   if (state.editing !== null) {
     alert('请先完成正在编辑的条目（点「确定」或「取消」）');
     return;
   }
-  if (!state.faq.length && !confirm('当前没有任何 FAQ，确定要保存为空列表吗？')) return;
+  if (!state.data.length && !confirm('当前没有任何内容，确定要保存为空列表吗？')) return;
 
   const msg = prompt('这次修改的说明（会记录在 git 提交历史里）：',
-                     '更新 FAQ（' + new Date().toLocaleString('zh-CN') + '）');
+                     '更新 ' + ds().label + '（' + new Date().toLocaleString('zh-CN') + '）');
   if (msg === null) return;
 
   const btn1 = document.getElementById('saveBtn');
@@ -784,14 +995,14 @@ async function saveToGitHub() {
   showStatus('正在提交到 GitHub…', 'info');
 
   try {
-    let r = await putFAQFile(msg || '更新 FAQ', state.sha);
+    let r = await putFAQFile(msg || ('更新 ' + ds().label), state.sha);
 
     // sha 过期 / 文件被删 / 需要 sha：取最新 sha 后重试一次
     if (r.status === 409 || r.status === 422 || r.status === 404) {
       showStatus('文件已变化，正在重新获取版本号后重试…', 'info');
       const cur = await ghFetchSha();
       state.sha = cur.sha;
-      r = await putFAQFile(msg || '更新 FAQ', cur.sha);
+      r = await putFAQFile(msg || ('更新 ' + ds().label), cur.sha);
     }
 
     if (!r.ok) throw new Error(await ghErrorText(r));
@@ -808,10 +1019,10 @@ async function saveToGitHub() {
       if (check.ok) {
         const cj = await check.json();
         const remote = JSON.parse(b64decode(cj.content));
-        if (Array.isArray(remote) && remote.length === state.faq.length) {
+        if (Array.isArray(remote) && remote.length === state.data.length) {
           verify = '\n核对：远端现有 ' + remote.length + ' 条，与当前列表一致';
         } else if (Array.isArray(remote)) {
-          verify = '\n⚠ 核对：远端现有 ' + remote.length + ' 条，当前列表 ' + state.faq.length + ' 条，请重新读取确认';
+          verify = '\n⚠ 核对：远端现有 ' + remote.length + ' 条，当前列表 ' + state.data.length + ' 条，请重新读取确认';
         }
       }
     } catch (e) { /* 核对失败不影响主流程 */ }

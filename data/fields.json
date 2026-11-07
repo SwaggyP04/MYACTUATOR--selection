@@ -1,0 +1,187 @@
+[
+  {
+    "key": "rated_torque_Nm",
+    "zh": "额定扭矩：可连续输出而不过热的扭矩。持续运行应不超过此值。",
+    "en": "Torque the actuator delivers continuously without overheating. Keep the steady-state load at or below this."
+  },
+  {
+    "key": "peak_torque_Nm",
+    "zh": "峰值扭矩：短时（加速、冲击）可输出的最大扭矩。持续在此扭矩会过热，只用于瞬时峰值。",
+    "en": "Maximum torque for short bursts (acceleration, shock). Sustaining it overheats the motor — not a continuous rating."
+  },
+  {
+    "key": "rated_speed_rpm",
+    "zh": "额定转速：输出额定扭矩/功率时的转速。超过后可用扭矩会下降。",
+    "en": "Speed at which rated torque/power is delivered. Above it, available torque falls off."
+  },
+  {
+    "key": "no_load_speed_rpm",
+    "zh": "空载转速：无负载时的最高转速。此处扭矩接近 0，转速降低时可用扭矩上升。",
+    "en": "Top speed with no load. Torque is ~zero here; usable torque rises as speed drops toward stall."
+  },
+  {
+    "key": "rated_power_W",
+    "zh": "额定功率：连续输出的机械功率（扭矩 × 角速度）。",
+    "en": "Continuous mechanical output (≈ rated torque × rated speed). A rough size/capability indicator."
+  },
+  {
+    "key": "voltage_V",
+    "zh": "额定电压：设计工作电压。低于额定会降低性能，高于额定可能触发过压。",
+    "en": "Nominal DC bus voltage. Lower supply lowers top speed and available torque roughly in proportion."
+  },
+  {
+    "key": "ratio",
+    "zh": "减速比：电机轴到输出轴的传动比。输出扭矩 = 电机扭矩 × 减速比 × 效率。",
+    "en": "Gear reduction. Higher ratio multiplies torque and backlash-sensitivity while dividing output speed."
+  },
+  {
+    "key": "torque_constant_Nm_A",
+    "zh": "扭矩常数：每安培电流产生的输出扭矩（N·m/A）。用于从电流估算扭矩。",
+    "en": "Kt: torque produced per amp (at the motor). Torque ≈ Kt × current — handy for current-from-torque estimates."
+  },
+  {
+    "key": "back_emf_Vdc_krpm",
+    "zh": "反电势常数：每千转产生的反电动势（V/krpm）。影响高速时的可达到转速。",
+    "en": "Voltage the spinning motor generates per 1000 rpm. Sets the speed a given bus voltage can reach."
+  },
+  {
+    "key": "resistance_ohm",
+    "zh": "线电阻：电机相间电阻，影响铜损和温升。",
+    "en": "Winding resistance. Drives I²R heating and the voltage lost to current — affects low-speed torque & warmth."
+  },
+  {
+    "key": "inductance_mH",
+    "zh": "线电感：电机相间电感，影响电流环带宽和响应。",
+    "en": "Winding inductance. Influences current ripple and how fast current (torque) can change; matters for tuning."
+  },
+  {
+    "key": "pole_pairs",
+    "zh": "极对数：电机转子磁极对数，影响电角度换算。",
+    "en": "Magnetic pole pairs. Affects electrical-to-mechanical speed ratio and commutation; needed for correct setup."
+  },
+  {
+    "key": "rotor_inertia_kgcm2",
+    "zh": "转子惯量：电机转子转动惯量。折算到输出端需乘以减速比平方。",
+    "en": "Spinning mass of the rotor. High inertia resists fast acceleration; match to load inertia for good control."
+  },
+  {
+    "key": "backlash",
+    "zh": "背隙：齿轮传动中的空程，单位为弧分（arcmin）。1 弧分 ≈ 0.0167°。",
+    "en": "Lost motion when reversing direction. Critical for precision/positioning; harmonic ≪ planetary here."
+  },
+  {
+    "key": "backdrive_torque_Nm",
+    "zh": "反驱扭矩：断电后需要多大扭矩才能反向推动输出端。小于此值不会自转。",
+    "en": "Torque needed at the output to turn the actuator backwards. High = more self-holding; low = easier to back-drive."
+  },
+  {
+    "key": "output_bearing_type",
+    "zh": "输出轴承类型：决定可承受的轴向/径向载荷和倾覆力矩。",
+    "en": "Bearing supporting the output flange. A cross-roller carries combined axial+radial+moment loads directly."
+  },
+  {
+    "key": "brake",
+    "zh": "抱闸：断电时是否保持位置。谐波模组（RH / HM 系列）标配抱闸，行星模组（X 系列）无抱闸。",
+    "en": "Holding brake. If present it keeps position with power off — important for vertical/lifting joints (safety)."
+  },
+  {
+    "key": "axial_load_tensile_kN",
+    "zh": "轴向载荷（受拉）：输出端可承受的向外拉力。",
+    "en": "Pull-apart load the output bearing tolerates along the shaft axis."
+  },
+  {
+    "key": "axial_load_compressive_kN",
+    "zh": "轴向载荷（受压）：输出端可承受的向内压力。",
+    "en": "Push-together load the output bearing tolerates along the shaft axis."
+  },
+  {
+    "key": "radial_load_kN",
+    "zh": "径向载荷：垂直于轴线的载荷，如皮带轮、齿轮的径向力。",
+    "en": "Sideways load the output bearing tolerates, perpendicular to the shaft."
+  },
+  {
+    "key": "radial_load_static_kN",
+    "zh": "径向载荷（静态）：静止或低速时可承受的径向力。",
+    "en": "Radial load rating while stationary (no rotation)."
+  },
+  {
+    "key": "radial_load_dynamic_kN",
+    "zh": "径向载荷（动态）：连续旋转时可承受的径向力。",
+    "en": "Radial load rating while rotating (lower than static; affects bearing life)."
+  },
+  {
+    "key": "efficiency_pct",
+    "zh": "效率：输出机械功率 / 输入电功率。影响发热和能耗。",
+    "en": "Fraction of electrical input that becomes mechanical output; the rest is heat. Lower = runs hotter."
+  },
+  {
+    "key": "rated_current_A",
+    "zh": "额定电流：输出额定扭矩时的相电流（RMS）。",
+    "en": "Continuous current for rated torque. The thermal limit for steady operation."
+  },
+  {
+    "key": "peak_current_A",
+    "zh": "峰值电流：短时可承受的最大相电流（RMS）。",
+    "en": "Short-burst current for peak torque. Over it the driver current-limits or faults."
+  },
+  {
+    "key": "no_load_current_A",
+    "zh": "空载电流：无负载运转时的电流，反映摩擦和铁损。",
+    "en": "Current just to spin the unloaded motor (friction, cogging, iron losses)."
+  },
+  {
+    "key": "encoder",
+    "zh": "编码器：位置反馈类型（单/双编码器、位数、绝对值/增量）。",
+    "en": "Position sensor. Bit-count = resolution; ABS (absolute) keeps position through power-cycles, INC (incremental) needs homing."
+  },
+  {
+    "key": "repeatability_deg",
+    "zh": "重复精度：多次回到同一目标位置的一致性。",
+    "en": "How closely it returns to the same commanded position. Smaller is better for precision work."
+  },
+  {
+    "key": "insulation",
+    "zh": "绝缘等级：绕组绝缘耐温等级（如 F 级 = 155°C）。",
+    "en": "Winding insulation class — the temperature the windings can safely tolerate."
+  },
+  {
+    "key": "protection",
+    "zh": "防护等级：防尘防水等级（IP 代码）。",
+    "en": "IP rating: dust/water ingress resistance (e.g. IP54). Higher = more sealed."
+  },
+  {
+    "key": "weight_kg",
+    "zh": "重量：不含线缆的执行器净重。",
+    "en": "Actuator mass. In multi-joint robots this stacks up as load on every joint below it."
+  },
+  {
+    "key": "outer_diameter_mm",
+    "zh": "外径：执行器最大外圆直径。",
+    "en": "Body outer diameter — the main packaging constraint for fitting into a joint."
+  },
+  {
+    "key": "length_mm",
+    "zh": "长度：执行器轴向总长（不含轴伸）。",
+    "en": "Body length along the axis — the other key packaging dimension."
+  },
+  {
+    "key": "comms",
+    "zh": "通信协议：支持的总线类型（EtherCAT / CAN / RS485）。",
+    "en": "Control/communication interface (e.g. CAN, RS485, EtherCAT). Must match the customer's controller & wiring."
+  },
+  {
+    "key": "wiring",
+    "zh": "接线方式：电机绕组接法（Y 星形 / Δ 三角形）。",
+    "en": "Motor winding connection (e.g. Y / star). Relevant when configuring or diagnosing the drive."
+  },
+  {
+    "key": "thrust_N",
+    "zh": "推力：直线执行器的输出推力。",
+    "en": "For linear units: continuous push/pull force along the stroke."
+  },
+  {
+    "key": "family",
+    "zh": "系列：产品族（行星/谐波/直线/中空直驱等）。",
+    "en": "Gear technology. Planetary = compact, cost-effective, some backlash. Harmonic = near-zero backlash, high ratio, precision."
+  }
+]
