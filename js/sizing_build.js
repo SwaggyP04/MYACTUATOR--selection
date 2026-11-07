@@ -445,6 +445,51 @@ function showProductDetail(short) {
       </div>`;
   }
   
+  // ── 出厂默认参数 ──
+  let factoryHtml = '';
+  if (p.factory) {
+    const f = p.factory;
+    const nv = (v, u) => (v === null || v === undefined || v === '' ? '-' : v + (u ? ' ' + u : ''));
+    const pidRow = (label, kp, ki, kd, ft) => '<tr>' +
+      '<td style="padding:6px 8px;border:1px solid #333;color:#c9d1d9;">' + label + '</td>' +
+      '<td style="padding:6px 8px;border:1px solid #333;text-align:center;color:#e6edf3;">' + nv(kp) + '</td>' +
+      '<td style="padding:6px 8px;border:1px solid #333;text-align:center;color:#e6edf3;">' + nv(ki) + '</td>' +
+      '<td style="padding:6px 8px;border:1px solid #333;text-align:center;color:#e6edf3;">' + nv(kd) + '</td>' +
+      '<td style="padding:6px 8px;border:1px solid #333;text-align:center;color:#889;">' + nv(ft) + '</td>' +
+      '</tr>';
+    factoryHtml = '\n      <div style="margin-top:20px;">' +
+      '<h4 style="color:#7ee787;margin-bottom:10px;">🔧 出厂默认参数（上位机）</h4>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px;color:#c9d1d9;">' +
+        '<div><span style="color:#889;">标定电流：</span><b style="color:#7ee787;">' + nv(f.calibCurrent, 'A') + '</b></div>' +
+        '<div><span style="color:#889;">极对数：</span>' + nv(f.polePairs) + '</div>' +
+        '<div><span style="color:#889;">编码器分辨率：</span>' + nv(f.encoderRes) + '</div>' +
+        '<div><span style="color:#889;">KT_OUT：</span>' + nv(f.ktOut, 'N·m/A') + '</div>' +
+        '<div><span style="color:#889;">额定电流：</span>' + nv(f.ratedCurrent, 'A') + '</div>' +
+        '<div><span style="color:#889;">最大电流：</span>' + nv(f.maxCurrent, 'A') + '</div>' +
+        '<div><span style="color:#889;">堵转电流：</span>' + nv(f.stallCurrent, 'A') + '</div>' +
+        '<div><span style="color:#889;">额定转速：</span>' + nv(f.nominalSpeed, 'rpm') + '</div>' +
+        '<div><span style="color:#889;">最大转速：</span>' + nv(f.maxSpeed, 'rpm') + '</div>' +
+        '<div><span style="color:#889;">过压 / 欠压：</span>' + nv(f.overVoltage) + ' / ' + nv(f.lowVoltage) + ' V</div>' +
+        '<div><span style="color:#889;">关断 / 恢复温度：</span>' + nv(f.shutdownTemp) + ' / ' + nv(f.resumeTemp) + ' °C</div>' +
+        '<div><span style="color:#889;">减速比：</span>' + nv(f.ratio) + '</div>' +
+      '</div>' +
+      '<div style="margin-top:14px;font-size:12px;color:#889;">PID 出厂值</div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;">' +
+        '<thead><tr style="background:rgba(126,231,135,0.08);">' +
+          '<th style="padding:6px 8px;border:1px solid #333;text-align:left;color:#7ee787;">环</th>' +
+          '<th style="padding:6px 8px;border:1px solid #333;color:#7ee787;">KP</th>' +
+          '<th style="padding:6px 8px;border:1px solid #333;color:#7ee787;">KI</th>' +
+          '<th style="padding:6px 8px;border:1px solid #333;color:#7ee787;">KD</th>' +
+          '<th style="padding:6px 8px;border:1px solid #333;color:#7ee787;">滤波 T</th>' +
+        '</tr></thead><tbody>' +
+        pidRow('位置环', f.posKp, f.posKi, f.posKd, f.posFilterT) +
+        pidRow('速度环', f.spdKp, f.spdKi, f.spdKd, f.spdFilterT) +
+        pidRow('电流环', f.curKp, f.curKi, f.curKd, f.curFilterT) +
+        '</tbody></table>' +
+      '<div style="color:#667;font-size:11px;margin-top:8px;">数据取自该型号上位机默认参数表；标定电流用于电角度标定。</div>' +
+      '</div>';
+  }
+
   modal.innerHTML = `
     <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;max-width:800px;width:100%;max-height:85vh;overflow-y:auto;padding:25px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
@@ -489,6 +534,7 @@ function showProductDetail(short) {
       
       ${electricalHtml}
       ${stallHtml}
+      ${factoryHtml}
       
       <div style="margin-top:20px;padding:15px;background:rgba(74,170,255,0.05);border:1px solid rgba(74,170,255,0.2);border-radius:8px;">
         <h4 style="color:#4af;margin-bottom:10px;">📐 图纸下载</h4>
